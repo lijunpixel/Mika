@@ -24,6 +24,9 @@ import kotlin.random.Random
 private const val TAG = "RunStore"
 private const val MAX_WIDTH = 720
 private const val JPEG_QUALITY = 70
+// FileInputStream readers on Windows prevent atomic replacement while their handle is open.
+// Share this lock across RunStore instances and their asynchronous RunHandles.
+private val summaryFileLock = Any()
 
 private fun moveReplacing(temp: File, target: File) {
     try {
@@ -73,8 +76,10 @@ class RunStore internal constructor(
     }
 
     /** 新的在前。 */
-    fun list(): List<RunSummary> = runDirs().reversed().mapNotNull { d ->
-        runCatching { RunEvent.json.decodeFromString(RunSummary.serializer(), File(d, RUN_JSON).readText()) }.getOrNull()
+    fun list(): List<RunSummary> = synchronized(summaryFileLock) {
+        runDirs().reversed().mapNotNull { d ->
+            runCatching { RunEvent.json.decodeFromString(RunSummary.serializer(), File(d, RUN_JSON).readText()) }.getOrNull()
+        }
     }
 
     fun events(runId: String): List<RunEvent> {
@@ -90,7 +95,7 @@ class RunStore internal constructor(
     @Synchronized
     fun append(runId: String, e: RunEvent) {
         val dir = dirOf(runId) ?: return
-        runCatching {
+        synchronized(summaryFileLock) { runCatching {
             File(dir, EVENTS).appendText(RunEvent.encode(e) + "\n")
             val summaryFile = File(dir, RUN_JSON)
             val summary = RunEvent.json.decodeFromString(RunSummary.serializer(), summaryFile.readText()).with(e)
@@ -98,7 +103,7 @@ class RunStore internal constructor(
             tmp.writeText(RunEvent.json.encodeToString(RunSummary.serializer(), summary))
             moveReplacing(tmp, summaryFile)
             if (e is RunEvent.OutcomeJudged) metrics.update(runId) { it.copy(judged = e.outcome) }
-        }.onFailure { runCatching { Log.w(TAG, "could not append to run $runId", it) } }
+        }.onFailure { runCatching { Log.w(TAG, "could not append to run $runId", it) } } }
     }
 
     fun screen(runId: String, id: Int): File? = dirOf(runId)?.let { File(it, screenPath(id)) }?.takeIf { it.isFile }
@@ -239,11 +244,11 @@ class RunHandle internal constructor(
 
     private fun writeSummary() {
         sinceSummary = 0
-        safely("summary") {
+        safely("summary") { synchronized(summaryFileLock) {
             val tmp = File(dir, "${RunStore.RUN_JSON}.tmp")
             tmp.writeText(RunEvent.json.encodeToString(RunSummary.serializer(), summary))
             moveReplacing(tmp, File(dir, RunStore.RUN_JSON))
-        }
+        } }
     }
 
     private inline fun <T> safely(what: String, block: () -> T): T? = try {

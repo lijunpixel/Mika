@@ -635,6 +635,9 @@ class AgentLoop(
                         return StopRules.guard(it)
                     }
                     // 模型单步只会被守卫叫停、被确认关卡拦下或因作用在 Mika 自己身上不做;别的拒绝说明执行入口和这里对不上
+                    if (provenance.strictOutward && action.code in setOf("approval_unavailable", "target_unresolved")) {
+                        return TaskState.Failed("This action requires manual takeover; the outward action was not performed.", FailKind.Guard)
+                    }
                     check(action.hit != null || action.code == Refusals.OWN_APP) { "unexpected refusal ${action.code} for ${first.name}" }
                     // 被确认关卡拦下:不计入失败熔断,交给模型走确认流程
                     track.after(tools.verb(first.name), ok = false, guard = action.before.isNotEmpty(), changed = null, recovery = false, app = null)
