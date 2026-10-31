@@ -52,7 +52,7 @@
 .\tools\windows\mika-usb-mcp.ps1 -Action Close
 ```
 
-**手机重启后**，重新执行 `Connect`，然后把新令牌更新到 MCP 客户端配置中。`RefreshForward` 不能启动一份已被手机重启关闭的 MCP 服务。
+**手机重启后**，重新执行 `Connect`，然后把新令牌更新到 MCP 客户端配置中。`-Action RefreshForward` 不能启动一份已被手机重启关闭的 MCP 服务。
 
 ## 安全与限制
 
@@ -62,7 +62,7 @@
 - 连接脚本不负责解锁手机、不请求 PIN、不绕过需要你亲手处理的支付或登录。
 - `-CheckHealth` 只发送 MCP initialize 请求，不下发真实操作任务。
 - `Close` 需要设备当前在线才能吊销手机端令牌。使用过 `-LocalPort 18765` 时，关闭时也必须传入 `-LocalPort 18765`；拔线不等于关闭服务。
-- 当前脚本中的 `Status`、`RefreshForward` 读取现存连接信息：手机重启或 MCP 已关闭时应执行 `Connect`。
+- 当前脚本中的 `Status`、`-Action RefreshForward` 读取现存连接信息：手机重启或 MCP 已关闭时应执行 `Connect`。
 - 此脚本仅作 Windows 辅助工具，不会绕过 Android 的系统安全边界。
 
 ## 验收清单
@@ -71,7 +71,7 @@
 2. 未授权/离线设备明确报错；多设备但未指定 `-Serial` 时拒绝继续。
 3. `Status` 不打印令牌；带 `-ShowConfig` 时才打印 JSON。
 4. 端口被其他 ADB 映射占用时拒绝重绑。
-5. 拔线再连接后 `RefreshForward` 可恢复映射。
+5. 拔线再连接后 `-Action RefreshForward` 可恢复映射。
 6. `Close` 后手机端令牌失效；重启手机后必须重新 `Connect`。
 
 > 说明：当前这批补充文件属于 Fork 的增强功能。是否能在某台具体 Pixel 8 上运行，需要在真实 USB 连接环境中按照验收清单复测。

@@ -1,0 +1,27 @@
+name: ibot Linux validation
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ibot-linux-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  full-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Full JVM, POSIX contracts and Android lint (no provider credentials)
+        run: ./gradlew :core:test :app:testDebugUnitTest :app:lintDebug --no-daemon --console=plain

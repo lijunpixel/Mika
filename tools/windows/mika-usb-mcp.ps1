@@ -18,6 +18,8 @@ param(
     [ValidateSet('Connect', 'Status', 'RefreshForward', 'Close')]
     [string]$Action = 'Connect',
     [string]$Serial,
+    [ValidatePattern('^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$')]
+    [string]$PackageName = 'com.wangzan101.mika',
     [ValidateRange(1024, 65535)]
     [int]$LocalPort = 8765,
     [switch]$ShowConfig,
@@ -26,8 +28,8 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-$connectionFile = '/sdcard/Android/data/com.wangzan101.mika/files/mcp-usb.json'
-$connectionScript = '/sdcard/Android/data/com.wangzan101.mika/files/connect-computer.sh'
+$connectionFile = "/sdcard/Android/data/$PackageName/files/mcp-usb.json"
+$connectionScript = "/sdcard/Android/data/$PackageName/files/connect-computer.sh"
 
 function Invoke-Adb {
     param(
