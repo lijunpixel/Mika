@@ -20,7 +20,8 @@ data class DeviceAccessConfig(val enabled: Boolean = false, val kind: Credential
     val blocked: Boolean = false, val revision: String = "")
 
 /** 全部设置加密原子写入。仅保留非秘密状态流,不缓存解密后的凭据。读不出时按关闭处理。 */
-class DeviceAccessSettings(private val dir: File, private val cipher: KeyCipher) : DeviceAccessStore {
+class DeviceAccessSettings(private val dir: File, private val cipher: KeyCipher,
+    val allowCredentials: Boolean = true) : DeviceAccessStore {
     private val file = File(dir, "device-access.bin")
     private val mutable = MutableStateFlow(runCatching { read()?.let(::configOf) }.getOrNull() ?: DeviceAccessConfig())
     val config = mutable.asStateFlow()
@@ -38,6 +39,7 @@ class DeviceAccessSettings(private val dir: File, private val cipher: KeyCipher)
     }
 
     @Synchronized fun setCredential(kind: CredentialKind, value: String) {
+        check(allowCredentials) { "ibot does not collect lock-screen credentials; unlock the device manually" }
         val chars = value.toCharArray()
         try { require(DeviceCredential.valid(kind, chars)) { "Unsupported credential format" } } finally { chars.fill('\u0000') }
         save(config.value.copy(kind = kind, blocked = false, revision = UUID.randomUUID().toString()), value)

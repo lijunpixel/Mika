@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 // 关于页上的构建编号:当前提交的短哈希;没有 git(如从源码包编译)时写 dev
@@ -14,7 +15,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.wangzan101.mika"
+        applicationId = "com.wangzan101.mika.multiai"
         minSdk = 30
         targetSdk = 35
         versionCode = 24
@@ -23,6 +24,8 @@ android {
         buildConfigField("String", "GIT_HASH", "\"$gitHash\"")
         // 关于页版本号后的 Beta 标记;出正式版时改成 false
         buildConfigField("boolean", "BETA", "true")
+        buildConfigField("int", "MCP_DEFAULT_PORT", "8766")
+        manifestPlaceholders["ibotAppLabel"] = "ibot"
     }
 
     // 沙箱程序只有 arm64 版本(jniLibs/arm64-v8a);APK 不限 ABI,别的设备照常安装、显示「此设备不支持沙箱」。
@@ -40,6 +43,11 @@ android {
     sourceSets.getByName("androidTest").assets.srcDir(rootProject.file("eval/tasks"))
 
     buildTypes {
+        getByName("debug") {
+            applicationIdSuffix = ".dev"
+            versionNameSuffix = "-ibot-dev"
+            manifestPlaceholders["ibotAppLabel"] = "ibot Dev"
+        }
         // 看流畅度用的包:和发布版一样不可调试(调试包不做预先编译,界面慢好几倍,手感不作数),
         // 用本机调试签名,能直接覆盖调试包、保留数据;可被性能工具采样。./gradlew :app:assemblePerf
         create("perf") {
@@ -55,6 +63,9 @@ android {
         aidl = true
         buildConfig = true
     }
+
+    // Only unchanged v0.1.23 findings are baselined; new ibot errors remain fatal.
+    lint { baseline = file("lint-baseline-upstream.xml") }
 }
 
 kotlin {
@@ -97,4 +108,18 @@ dependencies {
 // LicensesTest 读仓库根目录的 THIRD_PARTY_NOTICES.md:让它参与测试的增量判断
 tasks.withType<Test>().configureEach {
     inputs.file(rootProject.file("THIRD_PARTY_NOTICES.md")).withPropertyName("thirdPartyNotices")
+}
+
+// Keep the full Android JVM task intact. These contracts require Android/Linux filesystem semantics.
+tasks.register<Test>("portableDebugUnitTest") {
+    group = "verification"
+    description = "Windows portable Android JVM tests; POSIX sandbox contracts stay in testDebugUnitTest"
+    val original = tasks.named<Test>("testDebugUnitTest").get()
+    dependsOn("compileDebugUnitTestKotlin", "compileDebugUnitTestJavaWithJavac")
+    testClassesDirs = original.testClassesDirs
+    classpath = original.classpath
+    systemProperties(original.systemProperties)
+    exclude("**/AndroidSandboxContractTest*", "**/AndroidSandboxRunTest*", "**/BundledRuntimeTest*",
+        "**/ProcLaunchTest*", "**/ProcRunnerArgsTest*", "**/RootfsInstallerTest*", "**/SkillsSyncTest*",
+        "**/UploadStagingTest*", "**/WebDownloadsTest*")
 }

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="trigger_reminder">Mika 提醒</string>
+    <string name="trigger_reminder">ibot 提醒</string>
     <string name="trigger_not_started_body">定时任务未能启动。请在定时任务页查看并重新执行。</string>
     <string name="trigger_start_failed">启动失败</string>
     <string name="trigger_not_started">定时任务未启动</string>
-    <string name="trigger_interrupted_body">定时任务运行中断，结果还不能确认。请先查看实际情况；Mika 不会自动重复操作。</string>
+    <string name="trigger_interrupted_body">定时任务运行中断，结果还不能确认。请先查看实际情况；ibot 不会自动重复操作。</string>
     <string name="trigger_unconfirmed">定时任务结果待确认</string>
     <string name="trigger_alarm_title">定时任务需要「闹钟和提醒」权限</string>
     <string name="trigger_alarm_body">没有这个权限,定时任务到点可能不准时,甚至不会启动。点这里去开启。</string>
@@ -12,7 +12,7 @@
     <string name="plans_alarm_body">没有这个权限,定时任务到点可能不准时,甚至不会启动。开一次就行。</string>
     <string name="plans_running_n">进行中 %1$d</string>
     <string name="plans_stopped_n">已停用 %1$d</string>
-    <string name="plans_empty">还没有定时任务\n在对话里告诉 Mika 什么时候提醒你，或什么时候帮你做事。</string>
+    <string name="plans_empty">还没有定时任务\n在对话里告诉 ibot 什么时候提醒你，或什么时候帮你做事。</string>
     <string name="plans_none_running">没有进行中的定时任务</string>
     <string name="plans_none_stopped">没有已停用的定时任务</string>
     <string name="plans_footer">在对话里说「每天 8 点…」「降价了告诉我」也能建，结果会发回建它的那个对话。定时触发可能受系统省电影响；停用或删除只影响后续触发。</string>

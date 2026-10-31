@@ -8,6 +8,9 @@ import com.wangzan101.mika.core.trigger.TriggerWindow
 import com.wangzan101.mika.core.trigger.TriggerWindowState
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
@@ -38,6 +41,10 @@ class FileTriggerStore(private val file: File) : TriggerStore {
         file.parentFile?.mkdirs()
         val temp = File(file.parentFile, file.name + ".tmp")
         FileOutputStream(temp).use { out -> out.write(Json.encodeToString(memory.snapshot()).toByteArray()); out.fd.sync() }
-        check(temp.renameTo(file)) { "trigger store rename failed" }
+        try {
+            Files.move(temp.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        } catch (_: AtomicMoveNotSupportedException) {
+            Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
     }
 }

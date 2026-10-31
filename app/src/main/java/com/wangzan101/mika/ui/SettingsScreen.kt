@@ -78,6 +78,7 @@ fun SettingsScreen(
     onFix: (Fix) -> Unit,
     onBack: () -> Unit,
     onOpenModels: () -> Unit,
+    onOpenCollaboration: () -> Unit = {},
     onOpenMemory: (() -> Unit)? = null,
     webSites: WebSitesState? = null,
     /** 开发者选项里的「自主模式」:当前值和换它的办法。 */
@@ -155,6 +156,7 @@ fun SettingsScreen(
             status = status, androidRelease = androidRelease,
             mainModel = roles.main?.let { id -> configs.firstOrNull { it.id == id } }?.let(ProviderConnection::displayName),
             onBack = onBack, onProblem = onProblem, onOpenModels = onOpenModels,
+            onOpenCollaboration = onOpenCollaboration,
             usageTokens = usageWeek, onOpenUsage = { page = SettingsPage.Usage },
             onOpenPhoneOps = { page = SettingsPage.PhoneOps },
             onOpenDuringWork = { page = SettingsPage.DuringWork },
@@ -237,6 +239,7 @@ fun SettingsContent(
     onBack: () -> Unit,
     onProblem: (Problem) -> Unit,
     onOpenModels: () -> Unit,
+    onOpenCollaboration: () -> Unit = {},
     /** 近 7 天用了多少 token;为空(还没统计出来)时不显示这一行。 */
     usageTokens: Long? = null,
     onOpenUsage: () -> Unit = {},
@@ -273,6 +276,7 @@ fun SettingsContent(
 
         GroupLabel(stringResource(R.string.settings_basic))
         GroupCard {
+            ListRow(MikaIcons.Spark, "ibot · Multi-AI", onClick = onOpenCollaboration) { RowChevron() }
             ListRow(MikaIcons.Spark, stringResource(R.string.settings_model), first = true, onClick = onOpenModels) {
                 RowValue(mainModel ?: stringResource(R.string.settings_not_set))
                 RowChevron()

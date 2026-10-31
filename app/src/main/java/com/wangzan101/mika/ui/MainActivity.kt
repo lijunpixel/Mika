@@ -273,7 +273,7 @@ private fun MikaRoot(store: ProviderStore, monitor: SystemStatusMonitor, activit
             phoneSetup.markGuideSeen()
             if (onboarding == OnboardingStep.Phone) goOnboarding(null) else nav.back()
         }
-        Route.Welcome -> WelcomeScreen { goOnboarding(OnboardingStep.Model) }
+        Route.Welcome -> WelcomeScreen(onOpenCollaboration = { nav.push(Route.Collaboration) }) { goOnboarding(OnboardingStep.Model) }
         Route.ModelSetup -> {
             val inOnboarding = onboarding == OnboardingStep.Model
             ModelSetupScreen(
@@ -331,6 +331,7 @@ private fun MikaRoot(store: ProviderStore, monitor: SystemStatusMonitor, activit
                 )
             }
         }
+        Route.Collaboration -> CollaborationScreen(app.collaboration, onBack = back, onOpenModels = { nav.push(Route.Models) })
         Route.Settings -> {
             val registry = remember { WebSites.registry(context) }
             val sites by registry.entries.collectAsState()
@@ -342,7 +343,7 @@ private fun MikaRoot(store: ProviderStore, monitor: SystemStatusMonitor, activit
             )
             val autonomous by app.approvals.autonomous.collectAsState()
             SettingsScreen(store, status, release, onFix, onBack = back, onOpenMemory = { nav.push(Route.Memory) },
-                onOpenModels = { nav.push(Route.Models) }, webSites = webSites,
+                onOpenModels = { nav.push(Route.Models) }, onOpenCollaboration = { nav.push(Route.Collaboration) }, webSites = webSites,
                 autonomous = autonomous, onAutonomous = app.approvalControl::setAutonomous,
                 updateVersion = updateState.update?.version, onOpenAbout = { nav.push(Route.About) })
         }

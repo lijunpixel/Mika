@@ -166,6 +166,8 @@ class TaskService : Service() {
         when (intent?.action) {
             ACTION_START -> begin(intent.getStringExtra(EXTRA_GOAL).orEmpty(), intent.getStringExtra(EXTRA_CONVERSATION),
                 allowQueue = intent.getBooleanExtra(EXTRA_QUEUE, false), messageId = intent.getStringExtra(EXTRA_MESSAGE_ID))
+            ACTION_START_COLLAB -> begin(intent.getStringExtra(EXTRA_GOAL).orEmpty(), intent.getStringExtra(EXTRA_CONVERSATION),
+                allowQueue = true, provenance = RunProvenance(RunOrigin.Mcp, Attendance.Present), collaborationStart = true)
             ACTION_START_TRIGGER -> begin(intent.getStringExtra(EXTRA_GOAL).orEmpty(), intent.getStringExtra(EXTRA_CONVERSATION),
                 allowQueue = true, provenance = RunProvenance(RunOrigin.Trigger, Attendance.Unattended),
                 triggerKey = intent.getStringExtra(EXTRA_TRIGGER_KEY),
@@ -180,6 +182,7 @@ class TaskService : Service() {
             ACTION_CANCEL -> if (run != null && center.cancelIfQueued(run)) cancelQueued(run) else run?.cancel()
             ACTION_RESUME -> run?.resume()
             ACTION_TAKE_OVER -> run?.takeOver(waitKeyOf(intent))
+            ACTION_COLLAB_TAKEOVER -> run?.collaborationTakeOverAndCancel()
             ACTION_HAND_BACK -> run?.handBack(waitKeyOf(intent))
             ACTION_FINISHED_MYSELF -> run?.finishedMyself(waitKeyOf(intent))
             ACTION_SKIP -> run?.skip(waitKeyOf(intent))
@@ -200,7 +203,9 @@ class TaskService : Service() {
 
     private fun begin(newGoal: String, requestedConversation: String?, allowQueue: Boolean = false,
         provenance: RunProvenance = RunProvenance(), triggerKey: String? = null,
-        triggerActionGoal: String? = null, triggerThreadId: String? = null, mcpExternalId: String? = null, messageId: String? = null) {
+        triggerActionGoal: String? = null, triggerThreadId: String? = null, mcpExternalId: String? = null, messageId: String? = null,
+        collaborationStart: Boolean = false) {
+        if (collaborationStart && (requestedConversation == null || TaskEnvironment.of(this).collaboration(requestedConversation) == null)) return
         parallel = FeatureFlags.get(this).speedFlags().parallelTasks
         // 同一对话里正在执行或排队的任务收到新原话时，交给它的 Inbox。
         requestedConversation?.let(center::byConversation)?.let { existing ->
@@ -281,6 +286,7 @@ class TaskService : Service() {
 
     /** 用户(或电脑)在新对话里交来的第一句话:后台请模型起一个标题记下(只起一次,起不出来就不记)。 */
     private fun nameConversation(store: ConversationStore, id: String, first: String, provenance: RunProvenance) {
+        if (TaskEnvironment.of(this).collaboration(id) != null) return
         if (provenance.origin != RunOrigin.Ui && provenance.origin != RunOrigin.Mcp) return
         scope.launch(Dispatchers.IO) {
             runCatching {
@@ -318,7 +324,8 @@ class TaskService : Service() {
             val end = if (run.shellDied && result !is TaskState.Succeeded) TaskState.Failed(SHELL_DIED, FailKind.Environment) else result
             // 停下了:界面当场显示已停止,交代随后补上(先登记「正在整理」,界面收到终态时就知道还有话要来)
             val draft = if (end == TaskState.Cancelled) run.draftText() else null
-            val stopRunId = run.runId.value?.takeIf { end == TaskState.Cancelled && !run.conditionCheck && run.hasStopMaterial(draft) }
+            val stopRunId = run.runId.value?.takeIf { end == TaskState.Cancelled && !run.conditionCheck &&
+                !run.isCollaborationRun && run.hasStopMaterial(draft) }
             stopRunId?.let { id -> taskState._summarizing.update { it + id } }
             run.end(end)
             if (!run.conditionCheck) recordTurn(store, run.conversationId, run.goal, end, run.runId.value, run.sharedFiles.value, run.joinedSteers(), run.usedGroups, run.joinedInterrupted(), run.joinedFinished())
@@ -722,10 +729,12 @@ class TaskService : Service() {
         const val ACTION_START = "com.wangzan101.mika.task.START"
         const val ACTION_START_TRIGGER = "com.wangzan101.mika.task.START_TRIGGER"
         const val ACTION_START_MCP = "com.wangzan101.mika.task.START_MCP"
+        const val ACTION_START_COLLAB = "com.wangzan101.mika.task.START_COLLAB"
         const val ACTION_CANCEL_MCP = "com.wangzan101.mika.task.CANCEL_MCP"
         const val ACTION_CANCEL = "com.wangzan101.mika.task.CANCEL"
         const val ACTION_RESUME = "com.wangzan101.mika.task.RESUME"
         const val ACTION_TAKE_OVER = "com.wangzan101.mika.task.TAKE_OVER"
+        const val ACTION_COLLAB_TAKEOVER = "com.wangzan101.mika.task.COLLAB_TAKEOVER"
         const val ACTION_HAND_BACK = "com.wangzan101.mika.task.HAND_BACK"
         const val ACTION_FINISHED_MYSELF = "com.wangzan101.mika.task.FINISHED_MYSELF"
         const val ACTION_SKIP = "com.wangzan101.mika.task.SKIP"
@@ -806,6 +815,12 @@ class TaskService : Service() {
                 .putExtra(EXTRA_MCP_ID, externalId).putExtra(EXTRA_ATTENDANCE, attendance.name))
         }
 
+        /** Starts only when the exact conversation has a collaboration-only model override installed. */
+        fun startCollaboration(context: Context, goal: String, conversation: String) {
+            context.startForegroundService(Intent(context, TaskService::class.java).setAction(ACTION_START_COLLAB)
+                .putExtra(EXTRA_GOAL, goal).putExtra(EXTRA_CONVERSATION, conversation))
+        }
+
         fun cancelMcp(context: Context, externalId: String) {
             val state = (context.applicationContext as com.wangzan101.mika.MikaApp).taskState
             if (state.runs.value.none { it.mcpExternalId == externalId }) return
@@ -821,6 +836,8 @@ class TaskService : Service() {
 
         /** 「我来处理」:把 App 挪到主屏并恢复它的声音。 */
         fun takeOver(context: Context, waitKey: Int? = null, runKey: String? = null) = send(context, ACTION_TAKE_OVER, waitKey, runKey)
+
+        fun collaborationTakeOver(context: Context, runKey: String) = send(context, ACTION_COLLAB_TAKEOVER, runKey = runKey)
 
         /** 「处理好了」:挪回虚拟屏、重新静音,Agent 先读屏核实再继续。 */
         fun handBack(context: Context, waitKey: Int? = null, runKey: String? = null) = send(context, ACTION_HAND_BACK, waitKey, runKey)

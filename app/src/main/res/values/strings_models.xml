@@ -45,7 +45,7 @@
     <string name="role_vision_what">Looks at screenshots</string>
     <string name="role_light_what">Small jobs like checks and notes</string>
     <string name="role_main_hint">Does all the thinking and acting. Pick a model with tool calling so tasks go reliably.</string>
-    <string name="role_vision_hint">Gets screenshots when reading the screen; more accurate on complex screens. Optional: without it Mika reads the screen as text.</string>
+    <string name="role_vision_hint">Gets screenshots when reading the screen; more accurate on complex screens. Optional: without it ibot reads the screen as text.</string>
     <string name="role_light_hint">Handles small jobs like checking whether a task is done and tidying memory. Cheap and fast is best.</string>
     <string name="models_delete_title">Delete “%1$s”?</string>
     <string name="models_delete_body">"Its API key will be deleted too. "</string>
@@ -75,9 +75,9 @@
 
     <!-- 用 ChatGPT 登录 -->
     <string name="chatgpt_use_plan_title">Use your ChatGPT plan</string>
-    <string name="chatgpt_use_plan_body">Complete eligible AI requests in this app with usage included in your ChatGPT plan or credits balance. Works with ChatGPT Plus and Pro. Mika itself is free; nothing is charged by Mika.</string>
+    <string name="chatgpt_use_plan_body">Complete eligible AI requests in this app with usage included in your ChatGPT plan or credits balance. Works with ChatGPT Plus and Pro. ibot itself is free; nothing is charged by ibot.</string>
     <string name="chatgpt_continue">Continue with ChatGPT</string>
-    <string name="chatgpt_waiting">Finish signing in in your browser, then come back to Mika.</string>
+    <string name="chatgpt_waiting">Finish signing in in your browser, then come back to ibot.</string>
     <string name="chatgpt_welcome_title">You’re using your ChatGPT plan</string>
     <string name="chatgpt_welcome_body">Eligible usage in this app uses your ChatGPT plan. Manage usage in your ChatGPT settings.</string>
     <string name="chatgpt_got_it">Got it</string>
@@ -88,23 +88,23 @@
     <string name="chatgpt_manage_usage">Manage usage</string>
     <string name="chatgpt_plan_note">Using ChatGPT plan. On Plus, the 5-hour limit is shared with other apps that use your plan; Pro has no 5-hour limit.</string>
     <string name="chatgpt_signed_out_note">Signed out on this phone. Continue with ChatGPT to use your plan again; your model choices are kept.</string>
-    <string name="chatgpt_revoke_unconfirmed">Signed out on this phone, but ChatGPT didn’t confirm it. You can also disconnect Mika in your ChatGPT settings.</string>
+    <string name="chatgpt_revoke_unconfirmed">Signed out on this phone, but ChatGPT didn’t confirm it. You can also disconnect ibot in your ChatGPT settings.</string>
     <string name="chatgpt_fail_denied">Sign-in was cancelled. If the page said the required permission isn’t available: using your plan needs ChatGPT Plus or Pro. With a free account, add another provider’s API key instead.</string>
     <string name="chatgpt_fail_mismatch">The sign-in reply didn’t match this attempt. Please try again.</string>
-    <string name="chatgpt_fail_no_client">ChatGPT didn’t finish registering Mika. Please try again.</string>
+    <string name="chatgpt_fail_no_client">ChatGPT didn’t finish registering ibot. Please try again.</string>
     <string name="chatgpt_fail_timed_out">Sign-in timed out. Please try again.</string>
     <string name="chatgpt_fail_exchange">ChatGPT rejected this sign-in (error: %1$s). Please try again.</string>
     <string name="chatgpt_fail_code_expired">The sign-in code expired or was already used. Please sign in again.</string>
     <string name="chatgpt_fail_region">OpenAI doesn’t support the region your network is in. Try another network.</string>
     <string name="chatgpt_fail_blocked">OpenAI’s protection blocked the request. Try another network or try again later.</string>
     <string name="chatgpt_fail_id_token">Couldn’t verify your ChatGPT account. Please try again.</string>
-    <string name="chatgpt_fail_no_plan">Mika wasn’t allowed to use your ChatGPT plan. Sign in again and allow plan usage (needs Plus or Pro).</string>
+    <string name="chatgpt_fail_no_plan">ibot wasn’t allowed to use your ChatGPT plan. Sign in again and allow plan usage (needs Plus or Pro).</string>
     <string name="chatgpt_fail_network">Couldn’t reach ChatGPT. Check your network and try again.</string>
-    <string name="chatgpt_page_title">Mika</string>
-    <string name="chatgpt_page_done">Signed in. Return to Mika.</string>
+    <string name="chatgpt_page_title">ibot</string>
+    <string name="chatgpt_page_done">Signed in. Return to ibot.</string>
     <string name="chatgpt_signin_notif_title">Signing in to ChatGPT</string>
     <string name="chatgpt_signin_notif_body">Waiting for you to sign in to ChatGPT in the browser</string>
-    <string name="chatgpt_page_back">Return to Mika</string>
+    <string name="chatgpt_page_back">Return to ibot</string>
     <string name="chatgpt_no_browser">No browser found to sign in with ChatGPT.</string>
     <string name="models_unverified">Not tested; tasks may fail</string>
     <string name="models_unverified_note">This provider has no model list, and %1$s (in use) hasn’t passed a test, so tasks may fail. Tap “Test again” to make one test call with it.</string>

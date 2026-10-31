@@ -98,7 +98,7 @@ class PhoneSetupCopyTest {
         assertTrue(PhoneSetupCopy.step(SetupStep.PairingCode).body.contains("使用配对码配对设备"))
         // 配对码怎么交给 Mika:无障碍开着时自己读,没开时按三步在通知里填
         assertEquals(
-            listOf("点「使用配对码配对设备」", "屏幕顶部弹出 Mika 的通知；没看到就下拉通知栏", "点「填配对码」，输入 6 位数字"),
+            listOf("点「使用配对码配对设备」", "屏幕顶部弹出 ibot 的通知；没看到就下拉通知栏", "点「填配对码」，输入 6 位数字"),
             PhoneSetupCopy.NOTIFY_GUIDE,
         )
         assertTrue(PhoneSetupCopy.NOTIFY_GUIDE[2].contains("「${PhoneSetupCopy.NOTIFY_ACTION}」"))
@@ -124,7 +124,7 @@ class PhoneSetupCopyTest {
 
     @Test
     fun skippingAccessibilityReadsAsTheRecommendedPath() {
-        assertEquals("跳过(配对后 Mika 会自己打开)", PhoneSetupCopy.ACCESSIBILITY_SKIP)
+        assertEquals("跳过(配对后 ibot 会自己打开)", PhoneSetupCopy.ACCESSIBILITY_SKIP)
         assertTrue(PhoneSetupCopy.step(SetupStep.Accessibility).body.contains("推荐"))
         assertEquals("我已经打开了,下一步", PhoneSetupCopy.TURNED_ON_NEXT)
     }

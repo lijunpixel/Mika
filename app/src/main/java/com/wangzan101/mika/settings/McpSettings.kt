@@ -70,7 +70,7 @@ class McpSettings(private val dir: File, private val cipher: KeyCipher, private 
     }
 
     companion object {
-        const val DEFAULT_PORT = 8765
+        const val DEFAULT_PORT = 8766
         private const val MIN_TOKEN = 32
     }
 }

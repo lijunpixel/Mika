@@ -249,6 +249,9 @@ class ProviderStore(
     /** 服务商 id → 加密后的 Key。 */
     private var keys: Map<String, String> = emptyMap()
 
+    /** Collaboration assignments keep model configurations alive independently of the three UI roles. */
+    private val collaborationReferences = mutableSetOf<String>()
+
     init {
         dir.mkdirs()
         load()
@@ -433,6 +436,55 @@ class ProviderStore(
         )).metered(source, usage)
     }
 
+    /** Build a metered client for an explicitly assigned model, without changing the user's main model. */
+    @Synchronized
+    fun modelForConfig(
+        configId: String,
+        session: ModelSession = ModelSession.fresh(),
+        maxOutputTokens: Int? = null,
+    ): ChatModel? {
+        val cfg = _configs.value.firstOrNull { it.id == configId } ?: return null
+        val p = provider(cfg.providerId)
+        val source = UsageSource(cfg.providerId, p?.name ?: cfg.name, cfg.model, UsagePurpose.Other)
+        return modelFactory(cfg, apiKey(cfg.id), endpointOf(cfg), ClientSetup(
+            headers(p?.sessionHeader, session), maxOutputTokens = maxOutputTokens,
+        )).metered(source, usage)
+    }
+
+    /** Replace the active collaboration configuration references; these configs survive role changes/pruning. */
+    @Synchronized
+    fun retainCollaborationConfigs(configIds: Set<String>) {
+        val next = configIds.filter { id -> _configs.value.any { it.id == id } }.toSet()
+        if (next == collaborationReferences) return
+        collaborationReferences.clear()
+        collaborationReferences.addAll(next)
+        writeConfig()
+    }
+
+    /** Create/find and persist a model assigned to collaboration, without altering UI role choices. */
+    @Synchronized
+    fun ensureCollaborationConfig(providerId: String, model: String, capabilities: Capabilities): ProviderConfig? {
+        return ensureCollaborationConfigs(providerId, listOf(model to capabilities)).firstOrNull()
+    }
+
+    /** Batch form used to register a provider's cached catalog with one local config write. */
+    @Synchronized
+    fun ensureCollaborationConfigs(providerId: String, models: List<Pair<String, Capabilities>>): List<ProviderConfig> {
+        val p = provider(providerId) ?: return emptyList()
+        var changed = false
+        val result = models.map { (model, capabilities) ->
+            val existing = _configs.value.firstOrNull { it.providerId == p.id && it.model == model }
+            val cfg = existing ?: ProviderConfig(newId(), p.kind, p.baseUrl, model, capabilities, p.name, p.id).also { created ->
+                _configs.value = _configs.value + created
+                changed = true
+            }
+            if (collaborationReferences.add(cfg.id)) changed = true
+            cfg
+        }
+        if (changed) writeConfig()
+        return result
+    }
+
     /**
      * 「测试并保存」的试调用:还没存下的服务商,按真实任务同一条路([modelFactory]、同样的请求头)建出 [model],
      * 带一个无参数的工具([PROBE_TOOL])、请它调用;回复限得很短(协议允许的话,见 [buildModel])。
@@ -580,7 +632,7 @@ class ProviderStore(
 
     /** 删掉没有用途在用的模型配置。Key 存在服务商上,不受影响。 */
     private fun prune() {
-        val used = _roles.value.referenced
+        val used = _roles.value.referenced + collaborationReferences
         _configs.value = _configs.value.filter { it.id in used }
     }
 
@@ -589,6 +641,8 @@ class ProviderStore(
             val root = json.parseToJsonElement(configFile.readText()).jsonObject
             _providers.value = root["services"]?.jsonArray?.mapNotNull { runCatching { providerOf(it.jsonObject) }.getOrNull() }.orEmpty()
             _configs.value = root["providers"]?.jsonArray?.mapNotNull { runCatching { configOf(it.jsonObject) }.getOrNull() }.orEmpty()
+            collaborationReferences.clear()
+            collaborationReferences.addAll(root["collaborationRefs"]?.jsonArray?.mapNotNull { runCatching { it.jsonPrimitive.content }.getOrNull() }.orEmpty())
             val uses = root["uses"]?.jsonObject
             _roles.value = if (uses != null) choicesOf(uses) else migrateRoles(root["roles"]?.jsonObject)
         }
@@ -598,6 +652,7 @@ class ProviderStore(
         migrate()
         // 指向不存在的配置的选择退回默认,没人用的配置删掉;和文件里的不一样(含刚迁移的用途)才写回
         _roles.value = _roles.value.keepOnly(_configs.value.map { it.id }.toSet())
+        collaborationReferences.retainAll(_configs.value.map { it.id }.toSet())
         prune()
         if (configFile.isFile) {
             val text = configJson()
@@ -777,6 +832,9 @@ class ProviderStore(
                         null -> Unit
                     }
                 }
+            }
+            if (collaborationReferences.isNotEmpty()) putJsonArray("collaborationRefs") {
+                collaborationReferences.forEach { add(it) }
             }
         }
         return root.toString()

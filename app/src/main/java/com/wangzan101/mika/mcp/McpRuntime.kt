@@ -98,7 +98,8 @@ class McpRuntime(
         val network = want == McpModes.Listen.PrivateNetworks
         val h = RemoteHost(tasks, { if (settings.enabled.value) settings.token() else null }, settings.port, allowAllInterfaces = network,
             serverVersion = BuildConfig.VERSION_NAME, onError = { Log.w(TAG, "computer access server error", it) },
-            loopbackToken = usb::token, device = device.access)
+            loopbackToken = usb::token, device = device.access,
+            extension = com.wangzan101.mika.mcp.CollaborationMcpExtension((context.applicationContext as com.wangzan101.mika.MikaApp).collaboration))
         return try {
             h.start()
             host = h

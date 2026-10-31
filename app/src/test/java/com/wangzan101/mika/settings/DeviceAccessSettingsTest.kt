@@ -12,6 +12,17 @@ class DeviceAccessSettingsTest {
     private val key = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
     private fun settings() = DeviceAccessSettings(tmp.root, AesGcmKeyCipher { key })
 
+    @Test fun ibotRejectsLockScreenCredentialCollection() {
+        val s = DeviceAccessSettings(tmp.root, AesGcmKeyCipher { key }, allowCredentials = false)
+        try { s.setCredential(CredentialKind.Pin, "123456"); fail("credentials accepted") }
+        catch (_: IllegalStateException) { }
+        assertFalse(s.credentialConfigured)
+        assertFalse(tmp.root.resolve("device-access.bin").exists())
+        s.setEnabled(true)
+        assertTrue(s.enabled)
+        assertNull(s.credential())
+    }
+
     @Test fun defaultsClosedAndPersistsEncrypted() {
         val s = settings()
         assertFalse(s.enabled)

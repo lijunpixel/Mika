@@ -29,7 +29,7 @@ class ChatCopyTest {
     @Test fun sixDistinctNonBlankExamples() {
         assertEquals(6, ChatCopy.examples.size)
         assertEquals(6, ChatCopy.examples.map { it.text }.filter { it.isNotBlank() }.toSet().size)
-        assertEquals("打开微信，给王赞发消息，让他拉我进Mika内测体验群", ChatCopy.examples.first().text)
+        assertEquals("打开微信，给王赞发消息，让他拉我进ibot内测体验群", ChatCopy.examples.first().text)
         assertEquals("帮我订明天早上9:40、9:50、10:00 的闹钟", ChatCopy.examples[4].text)
     }
 
@@ -74,7 +74,7 @@ class ChatCopyTest {
     @Test fun placeholderFollowsTheComposer() {
         assertEquals(ChatCopy.EMPTY_PROMPT, ChatCopy.placeholder(ComposerMode.Idle, hasHistory = false))
         assertEquals("继续说点什么…", ChatCopy.placeholder(ComposerMode.Idle, hasHistory = true))
-        assertEquals("回答 Mika 的问题", ChatCopy.placeholder(ComposerMode.Answer, hasHistory = true))
+        assertEquals("回答 ibot 的问题", ChatCopy.placeholder(ComposerMode.Answer, hasHistory = true))
         assertEquals("补充或改要求…", ChatCopy.placeholder(ComposerMode.Busy, hasHistory = true))
     }
 

@@ -42,6 +42,15 @@ import kotlinx.coroutines.withContext
 @Composable
 fun DeviceAccessSection(settings: DeviceAccessSettings) {
     val config by settings.config.collectAsState()
+    if (!settings.allowCredentials) {
+        GroupLabel("ibot · Device access")
+        GroupCard {
+            ListRow(MikaIcons.Desktop, "Allow remote wake", "Unlock the device manually. Lock-screen credentials are never collected.", first = true) {
+                MikaSwitch(config.enabled, settings::setEnabled, Modifier.testTag("device-access-enabled"))
+            }
+        }
+        return
+    }
     val scope = rememberCoroutineScope()
     var editing by remember { mutableStateOf(false) }
     var kind by remember { mutableStateOf(CredentialKind.Pin) }

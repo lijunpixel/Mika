@@ -37,6 +37,8 @@
 
     <!-- list_apps 列出可启动的 App;解析系统权限框所在的包,用于判断「被切走」 -->
     <queries>
+        <package android:name="ai.x.grok" />
+        <package android:name="ai.x.grok.bot" />
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -64,7 +66,7 @@
         android:name=".MikaApp"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:label="${ibotAppLabel}"
         android:localeConfig="@xml/locales_config"
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">

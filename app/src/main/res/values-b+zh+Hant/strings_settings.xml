@@ -11,7 +11,7 @@
     <string name="settings_during_work_sub">操作節奏、螢幕常亮、被操作的 App 靜音</string>
     <string name="settings_notif_sub">什麼時候彈出、去系統裡改</string>
     <string name="settings_privacy">隱私與資料</string>
-    <string name="settings_memory_sub">Mika 記住的事、學到的技能</string>
+    <string name="settings_memory_sub">ibot 記住的事、學到的技能</string>
     <string name="settings_web_logins">網站登入</string>
     <plurals name="settings_count_sites">
         <item quantity="other">%1$d 個</item>
@@ -24,7 +24,7 @@
     </plurals>
     <string name="settings_recovery">恢復與修復</string>
     <string name="settings_developer">開發人員選項</string>
-    <string name="settings_about">關於 Mika</string>
+    <string name="settings_about">關於 ibot</string>
     <string name="pill_unsupported">不支援</string>
     <string name="pill_available">可用</string>
     <string name="pill_needs_attention">需要處理</string>
@@ -34,7 +34,7 @@
     <string name="settings_all_ready_detail">模型已設定 · 手機操作可用</string>
     <string name="settings_status">狀態</string>
     <string name="settings_a11y">無障礙服務</string>
-    <string name="settings_a11y_sub">讀取和操作 Mika 的虛擬螢幕</string>
+    <string name="settings_a11y_sub">讀取和操作 ibot 的虛擬螢幕</string>
     <string name="settings_notif_progress_sub">進度和「需要你」提醒</string>
     <string name="settings_system_version">系統版本</string>
     <string name="settings_android_focus">Android %1$s · Android 12、13 上背景操作可能影響主螢幕焦點,建議 Android 14+</string>
@@ -46,7 +46,7 @@
     <string name="settings_keep_on">螢幕保持常亮</string>
     <string name="settings_keep_on_sub">任務進行時螢幕不熄滅,結束後恢復</string>
     <string name="settings_mute">被操作的 App 靜音</string>
-    <string name="settings_mute_sub">Mika 操作的 App 不出聲,你接手時恢復聲音</string>
+    <string name="settings_mute_sub">ibot 操作的 App 不出聲,你接手時恢復聲音</string>
     <string name="settings_pace">操作節奏</string>
     <string name="settings_pace_fast">快</string>
     <string name="settings_pace_fast_detail">步與步之間不停，文字一次填好</string>
@@ -62,14 +62,14 @@
     </plurals>
     <string name="capsule_settings_title">浮動膠囊</string>
     <string name="capsule_settings_sub">用別的 App 時，在螢幕上看任務進展</string>
-    <string name="capsule_settings_foot">膠囊借用 Mika 已開著的無障礙服務畫在螢幕上，不用另外授權；無障礙服務沒開或畫不出來時，照舊用通知提醒你。</string>
-    <string name="capsule_settings_background">有的手機會關掉背景的 App；膠囊不見了的話，請在系統設定裡允許 Mika 在背景執行、自動啟動。</string>
+    <string name="capsule_settings_foot">膠囊借用 ibot 已開著的無障礙服務畫在螢幕上，不用另外授權；無障礙服務沒開或畫不出來時，照舊用通知提醒你。</string>
+    <string name="capsule_settings_background">有的手機會關掉背景的 App；膠囊不見了的話，請在系統設定裡允許 ibot 在背景執行、自動啟動。</string>
     <string name="capsule_mode_off">關閉</string>
     <string name="capsule_mode_tasks">有任務時顯示</string>
     <string name="capsule_mode_always">一直顯示</string>
     <string name="capsule_mode_off_detail">只用通知</string>
     <string name="capsule_mode_tasks_detail">有任務在跑或等你時出現，做完幾秒後消失</string>
-    <string name="capsule_mode_always_detail">沒有任務時也留一顆 Mika 圖示</string>
+    <string name="capsule_mode_always_detail">沒有任務時也留一顆 ibot 圖示</string>
     <string name="routes_saved">已記住的操作路線</string>
     <string name="loading">正在讀取</string>
     <plurals name="routes_count">
