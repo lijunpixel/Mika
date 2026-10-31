@@ -99,3 +99,6 @@ try {
     }
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
 }
+
+# Last deliberate negative case must not leak its native process exit code to Actions.
+exit 0
