@@ -129,7 +129,7 @@ class AgentLoop(
     intentJudge: ChatModel? = null,
     /** 经验回放的路线匹配;只在 flags.replay 打开时用。 */
     routes: RouteMatcher? = null,
-    /** 技能目录(含个人技能);任务开始时按目标推荐。为 null 时不推荐。 */
+    /** 技能目录(含个人技能);任务开始时列出全部技能,并按目标给几条 App/站点知识的索引。为 null 或 [recommendSkills] 关着时不给索引。 */
     private val skills: GuideCatalog? = null,
     private val recommendSkills: Boolean = true,
     /** 记忆;为 null(或总开关关)时不检索、不注入、不提供 memory_* 工具。 */
@@ -382,20 +382,19 @@ class AgentLoop(
         val installed = try { installedApps() } catch (e: CancellationException) { throw e } catch (e: Exception) { emptyList() }
         val labels = installed.toMap()
         val matched = knowledge?.matchTask(task, Int.MAX_VALUE, installed).orEmpty()
-        val recommended = if (skills != null && recommendSkills) GuideRecommender.recommend(skills, task) else null
+        val index = if (skills != null && recommendSkills) GuideRecommender.index(skills, task) else null
         val start = ctx.start(
             task, priorTurns = context?.let { (it.parts.single() as Part.Text).text },
             memory = listOfNotNull(ProfileContext.render(profileSnapshot), block?.message).takeIf { it.isNotEmpty() }?.joinToString("\n\n"),
             channel = if (knowledge != null) channelLine(matched) else null,
             knowledge = matched, knowledgeNote = toolsNote(tools.scriptsOffered()), withLinks = flags.deepLinks,
-            skillsIndex = recommended?.index, indexedSkills = recommended?.ids.orEmpty(), skill = recommended?.personal,
+            skillsIndex = index,
             taskImages = opening?.images.orEmpty(), screens = opening?.details.orEmpty(),
         )
         val history = start.messages.toMutableList()
         start.knowledge.filter { it.trial }.forEach { emit(RunEvent.State(now(), "knowledge_trial_used", it.name)) }
         // 链接只在 open_link 可用时给,且只放行真的给了模型的那几份
         if (flags.deepLinks) start.knowledge.forEach { if (it.links.isNotEmpty()) tools.allowLinks(it.links) }
-        if (start.skillKept) recommended?.personalName?.let { emit(RunEvent.SkillUsed(now(), it, "injected")) }
         // 网页上每个站点只在第一次进入时按域名找一次知识
         val visitedSites = mutableSetOf<String>()
 
@@ -694,17 +693,13 @@ class AgentLoop(
             content["id"]?.jsonPrimitive?.content ?: "", content["kind"]?.jsonPrimitive?.content ?: "", content["status"]?.jsonPrimitive?.content ?: ""))
     }
 
-    /** 前台 App/站点的参考资料补进历史,关联的技能补进索引(确定性,不靠关键词猜)。 */
+    /** 前台 App/站点的参考资料补进历史(确定性,不靠关键词猜);技能开局已全部列出,这里不再补。 */
     private fun injectKnowledge(history: MutableList<Message>, e: KnowledgeEntry?) {
         ctx.knowledge(e, toolsNote(tools.scriptsOffered()), flags.deepLinks)?.let { m ->
             if (flags.deepLinks && e!!.links.isNotEmpty()) tools.allowLinks(e.links)
             history += m
             if (e?.trial == true) emit(RunEvent.State(now(), "knowledge_trial_used", e.name))
         }
-        val catalog = skills?.takeIf { recommendSkills } ?: return
-        e ?: return
-        val linked = catalog.linkedSkills(e.name).map { GuideRecommender.id(it) to GuideRecommender.line(it) }
-        ctx.linkedSkills("skills linked to ${e.display}", SKILL_INDEX_HEADER, linked)?.let { history += it }
     }
 
     /**

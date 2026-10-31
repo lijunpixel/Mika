@@ -50,11 +50,10 @@ class ContextBuilderTest {
         val s = ContextBuilder().start(
             "帮我查天气", priorTurns = "之前", memory = "记忆", channel = "可用渠道:…",
             knowledge = listOf(app("a"), site("s", "s.example.com")), knowledgeNote = "(注)", skillsIndex = "索引",
-            skill = ContextBuilder.SkillText("personal:x", "说明\n", "全文"),
         )
         assertEquals(
             listOf(ContextKind.PriorTurns, ContextKind.Memory, null, ContextKind.Channel,
-                ContextKind.AppKnowledge, ContextKind.SiteKnowledge, ContextKind.SkillsIndex, ContextKind.Skill),
+                ContextKind.AppKnowledge, ContextKind.SiteKnowledge, ContextKind.SkillsIndex),
             s.messages.map { ContextBuilder.kindOf(it) },
         )
         assertEquals("帮我查天气", text(s.messages[2]))
@@ -62,9 +61,8 @@ class ContextBuilderTest {
         assertEquals("(注)\n正文a", ContextBuilder.bodyOf(s.messages[4]))
         assertEquals("显示a · p.a", ContextBuilder.sourceOf(s.messages[4]))
         assertEquals("站s · s.example.com", ContextBuilder.sourceOf(s.messages[5]))
-        assertEquals("说明\n全文", ContextBuilder.bodyOf(s.messages[7]))
+        assertEquals("索引", ContextBuilder.bodyOf(s.messages[6]))
         assertEquals(listOf("a", "s"), s.knowledge.map { it.name })
-        assertTrue(s.skillKept)
         // 参考资料标明可能过时;记忆标明是用户以前说的
         assertTrue(Trust.Reference.label in text(s.messages[4]) && Trust.UserMemory.label in text(s.messages[1]))
     }
@@ -91,14 +89,14 @@ class ContextBuilderTest {
     }
 
     @Test fun totalBudgetTrimsLowPriorityLayersFirst() {
-        // 总额 4000:L5 先拿走 2500(不截),L2 截到剩下的 1500,L4 一点不剩:索引与个人技能都不给
+        // 总额 4000:L5 先拿走 2500(不截),L2 截到剩下的 1500;技能索引是找技能的唯一入口,额度用完也整份给
         val b = ContextBuilder(ContextBudget(total = 4_000))
         val s = b.start("t", memory = "忆".repeat(2_500), knowledge = listOf(app("a", body = "知".repeat(3_000))),
-            skillsIndex = "索引", skill = ContextBuilder.SkillText("personal:x", "说明\n", "全文"))
+            skillsIndex = "索".repeat(800))
         val kinds = s.messages.map { ContextBuilder.kindOf(it) }
-        assertEquals(listOf(ContextKind.Memory, null, ContextKind.AppKnowledge), kinds)
+        assertEquals(listOf(ContextKind.Memory, null, ContextKind.AppKnowledge, ContextKind.SkillsIndex), kinds)
         assertEquals(1_500, ContextBuilder.bodyOf(s.messages[2])!!.length)
-        assertFalse(s.skillKept)
+        assertEquals(800, ContextBuilder.bodyOf(s.messages[3])!!.length)
         // L5 即使超出总额也不丢
         val big = ContextBuilder(ContextBudget(total = 100)).start("t", priorTurns = "前".repeat(500), memory = "忆".repeat(500))
         assertEquals(listOf(ContextKind.PriorTurns, ContextKind.Memory, null), big.messages.map { ContextBuilder.kindOf(it) })
@@ -121,18 +119,6 @@ class ContextBuilderTest {
         assertTrue(ContextBuilder.LINKS_HEADER in on && KNOWLEDGE_TRUNCATED_HINT in on)
         val off = ContextBuilder.bodyOf(ContextBuilder().knowledge(e, "", withLinks = false)!!)!!
         assertFalse("someapp://" in off)
-    }
-
-    @Test fun linkedSkillsAddOnlyUnlistedOnes() {
-        val b = ContextBuilder()
-        b.start("t", skillsIndex = "索引", indexedSkills = listOf("skill:a"))
-        val m = b.linkedSkills("关联 甲 的技能", "头", listOf("skill:a" to "- skill:a", "skill:b" to "- skill:b"))!!
-        assertEquals(ContextKind.SkillsIndex, ContextBuilder.kindOf(m))
-        assertEquals("头\n- skill:b", ContextBuilder.bodyOf(m))
-        assertNull(b.linkedSkills("关联 乙 的技能", "头", listOf("skill:b" to "- skill:b")))
-        // L4 用完就不再补
-        val tight = ContextBuilder(ContextBudget(layers = mapOf(ContextLayer.Skills to 5)))
-        assertNull(tight.linkedSkills("x", "头", listOf("skill:c" to "- skill:c 很长的描述")))
     }
 
     @Test fun runtimeStateFormats() {
@@ -261,13 +247,11 @@ class RuntimeStateHistoryTest {
     }
 }
 
-/** 前台到了关联技能的 App:技能补进索引,同一技能只列一次。 */
-class LinkedSkillsTest {
-    @Test fun foregroundAppAddsLinkedSkills() = runBlocking {
+/** 开局已列出全部技能:前台到了关联技能的 App 也不再补技能索引,开局那份不改。 */
+class ForegroundAddsNoSkillsIndexTest {
+    @Test fun foregroundAppAddsNoSkillLines() = runBlocking {
         val catalog = com.wangzan101.mika.core.knowledge.GuideCatalog.loadBundled()
         val store = com.wangzan101.mika.core.knowledge.KnowledgeStore(com.wangzan101.mika.core.knowledge.KnowledgeStore.loadBundled())
-        val linked = catalog.linkedSkills("wechat").map { GuideRecommender.id(it) }
-        assertTrue(linked.isNotEmpty())
         val screen = object : com.wangzan101.mika.core.uistate.ScreenPort by FakeScreen() {
             override suspend fun snapshot() = com.wangzan101.mika.core.uistate.ScreenSnapshot("s", "com.tencent.mm", emptyList(), 1080, 2400)
         }
@@ -275,10 +259,12 @@ class LinkedSkillsTest {
         val m = FakeModel(tools(Part.ToolCall("o1", "phone_observe", "{}")), tools(Part.ToolCall("o2", "phone_observe", "{}")),
             com.wangzan101.mika.core.testing.answerReply("ok"))
         AgentLoop(m, toolDispatcher(screen, skills = catalog), "B", knowledge = store, skills = catalog).run("看看")
-        val added = m.requests.last().filter { ContextBuilder.kindOf(it) == ContextKind.SkillsIndex }
-        assertEquals(1, added.size)
-        assertTrue(ContextBuilder.sourceOf(added[0])!!.startsWith("skills linked to "))
-        val body = ContextBuilder.bodyOf(added[0])!!
-        assertTrue(body, linked.all { "- $it(" in body })
+        val first = m.requests.first().filter { ContextBuilder.kindOf(it) == ContextKind.SkillsIndex }
+        val last = m.requests.last().filter { ContextBuilder.kindOf(it) == ContextKind.SkillsIndex }
+        assertEquals(1, first.size)
+        assertEquals(first, last)
+        // 微信的知识正文照样在进入时补上
+        assertTrue(m.requests.last().any { ContextBuilder.kindOf(it) == ContextKind.AppKnowledge })
+        assertTrue(ContextBuilder.bodyOf(first.single())!!.contains("- skill:messaging("))
     }
 }

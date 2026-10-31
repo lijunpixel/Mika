@@ -120,10 +120,8 @@ class RunLearning(
     private suspend fun recordOutcomes(used: List<RunEvent.SkillUsed>, end: TaskState, outcome: RunOutcome): List<SkillNote> {
         val result = SkillOutcomes.resultOf(end, outcome) ?: return emptyList()
         return used.groupBy { it.name }.mapNotNull { (name, uses) ->
-            // 只是开头塞了全文、Agent 没去看的,不能确定照着做了
-            val injectedOnly = uses.none { it.how == "viewed" }
             val next = guarded(null) {
-                skills.update(name) { s -> if (s.status == SkillStatus.active || s.status == SkillStatus.trial) SkillOutcomes.record(s, result, followed = true, injectedOnly = injectedOnly) else null }
+                skills.update(name) { s -> if (s.status == SkillStatus.active || s.status == SkillStatus.trial) SkillOutcomes.record(s, result, followed = true) else null }
             } ?: return@mapNotNull null
             when (next.status) {
                 SkillStatus.suspended -> SkillNote(tr(R.string.skill_suspended), suspended = name)
@@ -147,7 +145,8 @@ class RunLearning(
             d.draft(DraftInput(runId, a.goal, done?.answer.orEmpty(), done?.sources.orEmpty(), events, a.toolNames, a.tools), skills, catalog)
         }
         val draft = r as? DraftResult.Draft ?: return null
-        val id = ids()
+        // 是对一份待确认草稿的更新:写回那份草稿,不另起一份
+        val id = draft.replacesPending ?: ids()
         guarded(Unit) { skills.putPending(id, draft.skill) }
         if (autoApprove) {
             guarded(null) { skills.approve(id) }

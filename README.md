@@ -1,23 +1,22 @@
 <div align="center">
 
-<img src="docs/media/logo.png" alt="Mika" width="120" />
+<h1><img src="docs/media/logo.png" alt="" width="72" align="center" />&nbsp; Mika</h1>
 
-# Mika
+<a href="https://github.com/wangzan101/Mika/stargazers"><img src="https://img.shields.io/github/stars/wangzan101/Mika?style=flat&logo=github&label=Star&color=1f6feb" alt="stars" /></a>
+<a href="https://github.com/wangzan101/Mika/releases"><img src="https://img.shields.io/github/downloads/wangzan101/Mika/total?label=%E4%B8%8B%E8%BD%BD&color=2ea043" alt="downloads" /></a>
+<a href="https://github.com/wangzan101/Mika/releases/latest"><img src="https://img.shields.io/github/v/release/wangzan101/Mika?include_prereleases&label=%E7%89%88%E6%9C%AC" alt="version" /></a>
+<img src="https://img.shields.io/badge/Android-12%2B-3DDC84?logo=android&logoColor=white" alt="android" />
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-lightgrey" alt="license" /></a>
+<a href="https://x.com/wangzan101"><img src="https://img.shields.io/badge/X-%40wangzan101-000000?logo=x&logoColor=white" alt="X @wangzan101" /></a>
 
-简体中文 | [English](README.en.md)
+简体中文 · [English](README.en.md)
 
-**你手机上的私人 AI 助理，替你操作 App、上网、把事办成。**
-
+**你手机上的私人 AI 助理，替你操作 App、上网、把事办成。**<br/>
 它在一块看不见的后台屏上干活，你照样刷你的手机。
 
-An on-device AI agent for Android that operates apps and the web to get things done for you — on a hidden background screen, so you can keep using your phone.
+<h3><a href="https://github.com/wangzan101/Mika/releases/latest">⬇ 下载 Mika（安卓 APK）</a></h3>
 
-<a href="https://github.com/wangzan101/Mika/releases/latest"><img src="https://img.shields.io/github/v/release/wangzan101/Mika?include_prereleases&label=version" alt="version" /></a>
-<img src="https://img.shields.io/badge/Android-13%2B-3DDC84" alt="android" />
-<img src="https://img.shields.io/badge/sandbox-arm64-blue" alt="sandbox" />
-<a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-lightgrey" alt="license" /></a>
-
-[下载 APK](https://github.com/wangzan101/Mika/releases/latest) · [安装](#安装) · [快速开始](#快速开始) · [能做什么](#能做什么) · [常见问题](#常见问题) · [参与贡献](#参与贡献)
+[安装](#安装) · [快速开始](#快速开始) · [能做什么](#能做什么) · [常见问题](#常见问题) · [参与贡献](#参与贡献)
 
 </div>
 
@@ -33,7 +32,7 @@ An on-device AI agent for Android that operates apps and the web to get things d
 
 **方式二：让电脑上的 AI 助手帮你装**
 
-手机用数据线连上电脑，在手机上打开 USB 调试，然后把下面这句话发给电脑上能执行命令的 AI 助手：
+手机用数据线连上电脑，在手机上打开 USB 调试（开发者选项里别的开关不要动，除非 AI 助手请你打开；有的会清除手机数据），然后把下面这句话发给电脑上能执行命令的 AI 助手：
 
 ```
 请按 https://github.com/wangzan101/Mika/blob/main/docs/install-with-agent.md 的步骤，帮我把 Mika 安装到通过 USB 连着的安卓手机上。
@@ -166,9 +165,11 @@ adb forward tcp:8765 tcp:8765
 - 每个对话一个工作区，可以跑 Python、Node 和 shell 命令，处理你发来的文件，把结果存到手机的「下载/Mika」。
 - 默认断网，需要时在设置里的「文件与计算环境」打开「允许脚本联网」。只支持 arm64 设备。
 
-### 电脑上的 AI 工具也能用（MCP）
+### 电脑上的 AI 工具也能用（CLI / MCP）
 
 手机连着电脑时，电脑上的 AI 工具可以通过 MCP 把任务交给 Mika，在手机上办完把结果拿回去。一条命令打开，只经数据线、要令牌；也可以在设置里打开局域网连接（默认关）。见[电脑连接说明](docs/mcp.md)。
+
+也可以安装[电脑端 CLI 与 Agent Skill](docs/cli.md),用 `mika connect`、`mika task run`、`mika task wait` 完成连接和任务交接。CLI 与 MCP 并列接入同一份手机任务服务,CLI 不需要配置 MCP;需要包含任务 API v1 的 APK。
 
 ## 快速开始
 
@@ -192,7 +193,7 @@ Mika 靠无障碍读界面、做点按。不用手动去开：下一步配对成
 
 ### 3. 配对无线调试（只需一次）
 
-打开设置里的「设置手机操作」向导，照着清单做：打开开发者选项、USB 调试、无线调试，然后用 6 位配对码配对。
+打开设置里的「设置手机操作」向导，照着清单做：打开开发者选项、USB 调试、无线调试，然后用 6 位配对码配对。开发者选项里 Mika 没提到的开关不要动，有的会清除手机数据，比如「以 16KB 页面大小启动设备」。
 
 第一次设置、卡在某一步，或者不知道配对码填在哪里：看[手机操作设置指南](docs/setup-guide.md)，每一步都写了在哪里点、怎么算成功、常见问题怎么办。
 
@@ -292,12 +293,14 @@ Mika 在一块单独的后台屏上操作 App，安卓 12 起可以使用手机�
 
 ### 构建与测试
 
+CLI 测试另需 Python 3.10+,可用 `-PmikaPython=/path/to/python3` 指定解释器。
+
 需要 JDK 17 和 Android SDK（`local.properties` 里的 `sdk.dir`，或环境变量 `ANDROID_HOME`）。
 
 ```bash
 ./gradlew :app:assembleDebug                  # 调试包
 ./gradlew :app:assemblePerf                   # 看流畅度用的包：和发布版一样预先编译、不可调试，用调试签名，可直接覆盖调试包
-./gradlew :core:test :app:testDebugUnitTest   # 单元测试
+./gradlew :core:test :core:cliTest :app:testDebugUnitTest   # 单元测试
 ```
 
 调试包不做预先编译，界面会慢好几倍；判断流畅度请用 perf 包。
@@ -330,8 +333,8 @@ Mika 在一块单独的后台屏上操作 App，安卓 12 起可以使用手机�
 
 <a href="https://star-history.com/#wangzan101/Mika&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&theme=dark&v=20261031-1500" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&v=20261031-1500" width="600" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&theme=dark&v=20261031-1751" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&v=20261031-1751" width="600" />
   </picture>
 </a>
 

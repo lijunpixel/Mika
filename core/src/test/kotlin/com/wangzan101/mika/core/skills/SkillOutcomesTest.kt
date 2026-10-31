@@ -58,17 +58,3 @@ class SkillOutcomesTest {
             assertEquals(k.name, SkillResult.unreviewed, SkillOutcomes.resultOf(TaskState.Failed("x", k), RunOutcome.Unknown))
     }
 }
-
-class SkillOutcomesInjectedTest {
-    private val s = personalSkill("wechat-msg")
-
-    @Test fun injectedOnlyNeedsTwoFailuresInARow() {
-        var cur = SkillOutcomes.record(s, SkillResult.verifier_rejected, followed = true, injectedOnly = true)
-        assertEquals(SkillStatus.active, cur.status)
-        cur = SkillOutcomes.record(cur, SkillResult.verified, followed = true, injectedOnly = true)
-        cur = SkillOutcomes.record(cur, SkillResult.failed, followed = true, injectedOnly = true)
-        assertEquals(SkillStatus.active, cur.status) // 不灵的两次不连着
-        cur = SkillOutcomes.record(cur, SkillResult.unverified, followed = true, injectedOnly = true)
-        assertEquals(SkillStatus.suspended, cur.status)
-    }
-}

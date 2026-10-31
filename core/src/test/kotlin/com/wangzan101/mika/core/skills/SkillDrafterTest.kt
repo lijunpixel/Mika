@@ -65,6 +65,7 @@ class SkillDrafterTest {
         apps: String = "com.tencent.mm",
         body: String = "",
         drop: String? = null,
+        updates: String? = null,
     ): String {
         val sections = listOf(
             "## 入口" to "用 `phone_launch_app` 打开微信。",
@@ -73,7 +74,7 @@ class SkillDrafterTest {
             "## 怎样算办成(核实证据)" to "聊天里出现刚发的消息,没有红色感叹号。",
             "## 什么时候停下交给用户" to "需要登录时用 `hand_to_user`。",
         ).filter { it.first != drop }
-        return "---\nname: $name\ndisplay: 发微信消息\ndescription: $description\napps: [$apps]\nsource: learned\nlearned_from: r1\n---\n" +
+        return "---\nname: $name\ndisplay: 发微信消息\ndescription: $description\napps: [$apps]\n" + updates?.let { "updates: $it\n" }.orEmpty() + "source: learned\nlearned_from: r1\n---\n" +
             sections.joinToString("\n") { "${it.first}\n${it.second}" }
     }
 
@@ -169,12 +170,63 @@ class SkillDrafterTest {
         assertTrue((r as DraftResult.Draft).skill.markdown.contains("关于手机"))
     }
 
-    @Test fun similarPendingDraftDropsAndSuspendedBecomesUpdate() {
-        val pendingStore = InMemoryPersonalSkills().apply { putPending("d0", personalSkill("wechat-msg", display = "微信消息", extraMeta = "apps: [com.tencent.mm]\n")) }
-        assertEquals(DraftResult.Dropped("similar_draft_pending"), draft(text(md()), existing = pendingStore))
-        val suspended = personalSkill("wechat-msg", display = "微信消息", status = SkillStatus.suspended, extraMeta = "apps: [com.tencent.mm]\n")
-        val d = draft(text(md()), existing = InMemoryPersonalSkills(suspended)) as DraftResult.Draft
+    // 起草时把已有的个人技能(连同待确认的草稿)列给模型,是不是同一类事由它判断
+    @Test fun requestListsExistingSkillsAndDrafts() {
+        val store = InMemoryPersonalSkills(personalSkill("zhihu-collections", display = "查看知乎收藏夹列表", description = "数知乎收藏夹", status = SkillStatus.suspended))
+        store.putPending("d0", personalSkill("wechat-msg", display = "微信消息", description = "发微信"))
+        val model = FakeModel(text(md()))
+        draft(text(md()), existing = store, model = model)
+        val request = model.requests.single().flatMap { it.parts }.filterIsInstance<Part.Text>().joinToString("\n") { it.text }
+        assertTrue(request, request.contains("- zhihu-collections(查看知乎收藏夹列表):数知乎收藏夹"))
+        assertTrue(request, request.contains("- wechat-msg(微信消息):发微信"))
+    }
+
+    @Test fun modelMarkedUpdateOfExistingSkill() {
+        val mine = personalSkill("wechat-msg", display = "微信消息", status = SkillStatus.suspended)
+        val d = draft(text("```markdown\n" + md(updates = "wechat-msg") + "\n```"), existing = InMemoryPersonalSkills(mine)) as DraftResult.Draft
         assertEquals("wechat-msg", d.isUpdateOf)
+        assertEquals("wechat-msg", d.skill.name)
+        assertEquals("wechat-msg", d.skill.replacesDraftOf)
+        assertEquals(PersonalSkills.fingerprint(mine.markdown), d.skill.baseHash)
+        assertNull(d.replacesPending)
+        assertTrue(d.skill.markdown.startsWith("---\nname: wechat-msg\n"))
+        assertFalse(d.skill.markdown.contains("updates:"))
+    }
+
+    // 指向不存在的技能(或内置技能)的 updates 不算数:当作新的一份
+    @Test fun bogusUpdatesTreatedAsNew() {
+        val mine = personalSkill("wechat-msg", display = "微信消息")
+        for (bogus in listOf("no-such-skill", "messaging")) {
+            val d = draft(text(md(updates = bogus)), existing = InMemoryPersonalSkills(mine)) as DraftResult.Draft
+            assertNull(d.isUpdateOf)
+            assertNull(d.replacesPending)
+            assertEquals("send-wechat-message", d.skill.name)
+            assertNull(d.skill.replacesDraftOf)
+            assertFalse(d.skill.markdown.contains("updates:"))
+        }
+        // 没写 updates:名字再像也不替模型并进已有的
+        val d = draft(text(md()), existing = InMemoryPersonalSkills(personalSkill("wechat-msg", display = "微信消息", extraMeta = "apps: [com.tencent.mm]\n"))) as DraftResult.Draft
+        assertNull(d.isUpdateOf)
+        // 新的一份不能占已有的名字
+        assertEquals(DraftResult.Dropped("name_taken"), draft(text(md(name = "wechat-msg", updates = "nope")), existing = InMemoryPersonalSkills(mine)))
+    }
+
+    // 指向一份待确认的草稿:换掉那份草稿,不再堆一份
+    @Test fun updatesPendingDraftReplacesIt() {
+        val store = InMemoryPersonalSkills(personalSkill("wechat-msg"))
+        store.putPending("d0", personalSkill("new-thing", display = "新事"))
+        val d = draft(text(md(updates = "new-thing")), existing = store) as DraftResult.Draft
+        assertEquals("d0", d.replacesPending)
+        assertEquals("new-thing", d.skill.name)
+        assertNull(d.isUpdateOf)
+        assertNull(d.skill.replacesDraftOf)
+        // 那份草稿本身是已有技能的更新:新草稿接着更新同一份
+        store.putPending("d1", personalSkill("wechat-msg").copy(replacesDraftOf = "wechat-msg"))
+        val u = draft(text(md(updates = "wechat-msg")), existing = store) as DraftResult.Draft
+        assertEquals("d1", u.replacesPending)
+        assertEquals("wechat-msg", u.isUpdateOf)
+        assertEquals("wechat-msg", u.skill.replacesDraftOf)
+        assertEquals(PersonalSkills.fingerprint(store.get("wechat-msg")!!.markdown), u.skill.baseHash)
     }
 
     @Test fun approveRewritesName() {
@@ -245,20 +297,6 @@ class SkillDrafterTest {
     @Test fun invalidOrTakenNameDropped() {
         assertEquals(DraftResult.Dropped("invalid_name"), draft(text(md(name = "Send_Wechat"))))
         assertEquals(DraftResult.Dropped("name_taken"), draft(text(md(name = "wechat")))) // 与内置同名
-    }
-
-    @Test fun similarPersonalSkillBecomesUpdate() {
-        val mine = personalSkill("wechat-msg", display = "微信消息", extraMeta = "apps: [com.tencent.mm]\n")
-        val d = draft(text("```markdown\n" + md() + "\n```"), existing = InMemoryPersonalSkills(mine)) as DraftResult.Draft
-        assertEquals("wechat-msg", d.isUpdateOf)
-        assertEquals("wechat-msg", d.skill.name)
-        assertEquals("wechat-msg", d.skill.replacesDraftOf)
-        assertTrue(d.skill.markdown.startsWith("---\nname: wechat-msg\n"))
-        // 用的 App 不同:不算同一份,另起一份
-        val other = personalSkill("wechat-msg", display = "微信消息", extraMeta = "apps: [com.other.app]\n")
-        val d2 = draft(text(md()), existing = InMemoryPersonalSkills(other)) as DraftResult.Draft
-        assertNull(d2.isUpdateOf)
-        assertEquals("send-wechat-message", d2.skill.name)
     }
 
     @Test fun modelErrorDropped() {

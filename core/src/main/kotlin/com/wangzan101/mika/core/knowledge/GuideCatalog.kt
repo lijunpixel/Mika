@@ -35,7 +35,7 @@ const val SANDBOX_TOOLS_NOTE = "(Note: scripts marked runnable can be run with r
 fun toolsNote(sandboxAvailable: Boolean): String = if (sandboxAvailable) SANDBOX_TOOLS_NOTE else UNAVAILABLE_TOOLS_NOTE
 const val VIEW_LIMIT = 12_000
 const val FIND_LIMIT = 10
-/** 任务开始自动推荐的得分门槛:名称/显示名/别名至少部分对上。 */
+/** 任务开始按任务文字给 App/站点知识索引的得分门槛:名称/显示名/别名至少部分对上。 */
 const val RECOMMEND_MIN_SCORE = 60
 const val PERSONAL_KIND = "personal"
 /** App 与网站知识(knowledge_search / knowledge_read 管的);技能是另一组(内置技能与个人技能)。 */
@@ -71,10 +71,6 @@ class GuideCatalog private constructor(
         "browser" -> bundledItems.any { it.name == name && (it.kind == KnowledgeIndex.SITE || (it.kind == KnowledgeIndex.APP && it.sites.isNotEmpty())) }
         else -> false
     }
-
-    /** 关联了 App 或站点 [name] 的技能(内置与在用的个人技能)。 */
-    fun linkedSkills(name: String): List<GuideInfo> =
-        items.filter { it.kind == KnowledgeIndex.SKILL || it.kind == PERSONAL_KIND }.filter { name in it.apps || name in it.sites }
 
     /**
      * 评分:名称/显示名/别名整词相同 > 包含(或整个出现在查询词里) > 检索词 > 描述;每个空白分隔的词分别计分,

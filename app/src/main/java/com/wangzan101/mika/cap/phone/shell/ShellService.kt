@@ -405,6 +405,8 @@ class ShellService(
      */
     override fun startSystemAction(displayId: Int, intent: Intent, asMika: android.app.PendingIntent?): Int = synchronized(launchLock) {
         if (!ownDisplay(displayId)) return START_ERROR
+        // Mika 自己的兼容性自检页:以 shell 身份直接开到这块屏
+        if (intent.component?.className == SystemIntents.OWN_PAGE_CLASS) return startOwnPage(displayId, intent)
         if (!SystemIntents.allowed(intent.action, intent.dataString)) return START_INVALID_LINK
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         val candidates = activitiesFor(intent, intent.type) ?: return START_ERROR
@@ -443,6 +445,34 @@ class ShellService(
             Log.w(TAG, "sending ${intent.action} as Mika failed", t)
             START_ERROR
         }
+    }
+
+    /**
+     * 以 shell 身份把 Mika 的兼容性自检页([SystemIntents.OWN_PAGE_CLASS])开到这块屏,和 [startApp] 同一条路
+     * (startActivityAsUser 带 setLaunchDisplayId,不行退回 `am start --display`)。那一页只对持有 INTERACT_ACROSS_USERS_FULL 的
+     * 调用方开放(shell 有,普通 App 没有);shell 启动不受后台启动页面的限制。包名必须是 Mika 自己的,别的组件一律不开。
+     */
+    private fun startOwnPage(displayId: Int, intent: Intent): Int {
+        val component = intent.component ?: return START_INVALID_LINK
+        val mine = runCatching { context.packageManager.getPackagesForUid(allowedUid)?.toList() }.getOrNull().orEmpty()
+        // 只有 Mika 调得到这个服务;包名再核一次(查不到 Mika 的包名时只认类名)
+        if (component.className != SystemIntents.OWN_PAGE_CLASS || (mine.isNotEmpty() && component.packageName !in mine)) return START_INVALID_LINK
+        // 每次都从头开一页:旧的那一页连同它的任务清掉,新的一定在 Mika 屏的最上面
+        val page = Intent().setComponent(component).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        val options = ActivityOptions.makeBasic().setLaunchDisplayId(displayId).toBundle()
+        val ok = try {
+            val start = taskManager.javaClass.methods.first { it.name == "startActivityAsUser" && it.parameterTypes.size == 12 }
+            val result = start.invoke(
+                taskManager, null, ShellContext.SHELL_PACKAGE, null, page, null, null, null,
+                0, 0, null, options, USER_CURRENT,
+            ) as Int
+            if (result < 0) Log.w(TAG, "startActivityAsUser(own page) -> $result")
+            result >= 0
+        } catch (t: Throwable) {
+            Log.w(TAG, "startActivityAsUser unavailable, falling back to am start", t)
+            exec("am", "start", "--display", "$displayId", "--activity-clear-task", "-n", component.flattenToShortString()) == 0
+        }
+        return if (ok) START_OK else START_ERROR
     }
 
     /**
@@ -878,6 +908,15 @@ class ShellService(
         onRestoreWish?.invoke(flags)
     }
 
+    private val deviceUnlock by lazy { DeviceUnlockInput(context,
+        inject = { inject(it, Display.DEFAULT_DISPLAY, waitForFinish = true) },
+        injectTo = { event, uid -> injectTo(event, Display.DEFAULT_DISPLAY, uid) },
+        command = { exec(*it.toTypedArray()) == 0 }) }
+
+    override fun wakeDevice(): Boolean = deviceUnlock.wake()
+    override fun dismissDeviceKeyguard(): Boolean = deviceUnlock.dismiss()
+    override fun enterDeviceCredential(kind: Int, credential: ByteArray): Boolean = deviceUnlock.enter(kind, credential)
+
     private fun commandResult(code: Int, output: String) = Bundle().apply { putInt("exitCode", code); putString("output", output) }
 
     /** 以 shell 身份跑 `sh -c`,合并输出,限时限长;[displayId] 不为空时放进 MIKA_DISPLAY_ID。 */
@@ -964,18 +1003,37 @@ class ShellService(
     }
 
     @SuppressLint("PrivateApi")
-    private fun inject(event: InputEvent, displayId: Int): Boolean = try {
+    private fun inject(event: InputEvent, displayId: Int, waitForFinish: Boolean = false): Boolean = try {
         event.javaClass.getMethod("setDisplayId", Int::class.java).invoke(event, displayId)
-        // API 34 起注入入口在 InputManagerGlobal,更早在 InputManager
-        val manager = runCatching {
-            Class.forName("android.hardware.input.InputManagerGlobal").getMethod("getInstance").invoke(null)
-        }.getOrNull() ?: Class.forName("android.hardware.input.InputManager").getMethod("getInstance").invoke(null)
-        manager!!.javaClass.getMethod("injectInputEvent", InputEvent::class.java, Int::class.java)
-            .invoke(manager, event, INJECT_MODE_ASYNC) as Boolean
+        val manager = inputManager()
+        manager.javaClass.getMethod("injectInputEvent", InputEvent::class.java, Int::class.java)
+            .invoke(manager, event, if (waitForFinish) INJECT_MODE_WAIT_FOR_FINISH else INJECT_MODE_ASYNC) as Boolean
     } catch (t: Throwable) {
         Log.w(TAG, "injectInputEvent failed", t)
         false
     }
+
+    /**
+     * 只投给 [targetUid] 拥有的焦点窗口,等处理完再返回;焦点不在它那里时系统拒绝,事件不会落到别的窗口。
+     * 用安卓 13 起的隐藏重载 `injectInputEvent(event, mode, targetUid)`,没有这个重载时不注入。
+     * 失败只记异常类型:被拒的原因里不含按键,但这条路径输入的是锁屏凭据,不留多余信息。
+     */
+    @SuppressLint("PrivateApi")
+    private fun injectTo(event: InputEvent, displayId: Int, targetUid: Int): Boolean = try {
+        event.javaClass.getMethod("setDisplayId", Int::class.java).invoke(event, displayId)
+        val manager = inputManager()
+        manager.javaClass.getMethod("injectInputEvent", InputEvent::class.java, Int::class.java, Int::class.java)
+            .invoke(manager, event, INJECT_MODE_WAIT_FOR_FINISH, targetUid) as Boolean
+    } catch (t: Throwable) {
+        Log.w(TAG, "targeted injectInputEvent failed: ${(t.cause ?: t).javaClass.simpleName}")
+        false
+    }
+
+    /** API 34 起注入入口在 InputManagerGlobal,更早在 InputManager。 */
+    @SuppressLint("PrivateApi")
+    private fun inputManager(): Any = runCatching {
+        Class.forName("android.hardware.input.InputManagerGlobal").getMethod("getInstance").invoke(null)
+    }.getOrNull() ?: Class.forName("android.hardware.input.InputManager").getMethod("getInstance").invoke(null)!!
 
     private fun exec(vararg cmd: String): Int = sh(*cmd).first
 
@@ -1047,6 +1105,7 @@ class ShellService(
 
         private val TASK_INFO: Class<*> by lazy { Class.forName("android.app.TaskInfo") }
         private const val INJECT_MODE_ASYNC = 0 // InputManager.INJECT_INPUT_EVENT_MODE_ASYNC
+        private const val INJECT_MODE_WAIT_FOR_FINISH = 2 // InputManager.INJECT_INPUT_EVENT_MODE_WAIT_FOR_FINISH
         private const val VIRTUAL_KEYBOARD = -1 // KeyCharacterMap.VIRTUAL_KEYBOARD
         private const val USER_CURRENT = -2 // UserHandle.USER_CURRENT
         // WindowConfiguration.ACTIVITY_TYPE_*:桌面、最近任务、助理等是别的种类

@@ -84,6 +84,17 @@ class SedimentationWiringTest {
         assertEquals("draft-1", notes.skillNotes.single().draftId)
     }
 
+    // 模型说这次是对一份待确认草稿的更新:写回那份草稿的编号,不另起一份
+    @Test fun draftUpdatingPendingDraftReplacesIt() {
+        val skills = MapSkills()
+        skills.putPending("draft-0", PersonalSkill("send-wechat-message", draftMd, SkillStatus.pending, "r0", null, 0, emptyList()))
+        val updated = draftMd.replace("source: learned", "updates: send-wechat-message\nsource: learned")
+        val notes = runBlocking { learning(skills, learn = true, model = TextModel(updated)).learn(after(events())) }
+        assertEquals(listOf("draft-0"), skills.drafts.keys.toList())
+        assertEquals("run-1", skills.drafts.getValue("draft-0").learnedFrom)
+        assertEquals("draft-0", notes.skillNotes.single().draftId)
+    }
+
     @Test fun evalAutoApproveHook() {
         val skills = MapSkills()
         val notes = runBlocking { learning(skills, learn = true, autoApprove = true).learn(after(events())) }
@@ -103,7 +114,7 @@ class SedimentationWiringTest {
     @Test fun usedSkillOutcomeRecordedAndSuspensionNoted() {
         val skill = PersonalSkill("wechat-msg", draftMd.replace("send-wechat-message", "wechat-msg"), SkillStatus.active, "r0", null, 0, emptyList())
         val skills = MapSkills(skill)
-        val used = listOf(RunEvent.SkillUsed(40, "wechat-msg", "injected"), RunEvent.SkillUsed(41, "wechat-msg", "viewed"))
+        val used = listOf(RunEvent.SkillUsed(41, "wechat-msg", "viewed"))
         val notes = runBlocking {
             learning(skills, learn = true).learn(after(events(verdict = "fail", extra = used), TaskState.Failed("核查未通过:消息没发出去", FailKind.GaveUp)))
         }
@@ -129,14 +140,23 @@ class SedimentationWiringTest {
         assertNull(cancelled.get("wechat-msg")!!.outcomes.firstOrNull())
     }
 
-    @Test fun injectedOnlySkillNeedsTwoFailuresInARow() {
+    // 试用中的个人技能:Agent 用 skill_read 读过、这次办成了,转为正式
+    @Test fun viewedTrialSkillPromotesOnDoneRun() {
+        val skill = PersonalSkill("wechat-msg", draftMd.replace("send-wechat-message", "wechat-msg"), SkillStatus.trial, "r0", null, 0, emptyList())
+        val skills = MapSkills(skill)
+        runBlocking { learning(skills, learn = true).learn(after(events(extra = listOf(RunEvent.SkillUsed(41, "wechat-msg", "viewed"))))) }
+        assertEquals(SkillStatus.active, skills.get("wechat-msg")!!.status)
+        assertEquals(listOf("verified"), skills.get("wechat-msg")!!.outcomes)
+        assertTrue(skills.drafts.isEmpty())
+    }
+
+    // 旧运行记录里的 injected(以前开头塞进全文)照样读,和看过一样记结果
+    @Test fun oldInjectedRecordCountsAsUse() {
         val skill = PersonalSkill("wechat-msg", draftMd.replace("send-wechat-message", "wechat-msg"), SkillStatus.active, "r0", null, 0, emptyList())
         val skills = MapSkills(skill)
-        val used = listOf(RunEvent.SkillUsed(40, "wechat-msg", "injected"))
         val rejected = TaskState.Failed("核查未通过:没发出去", FailKind.GaveUp)
-        runBlocking { learning(skills, learn = false).learn(after(events(verdict = "fail", extra = used), rejected)) }
-        assertEquals(SkillStatus.active, skills.get("wechat-msg")!!.status)
-        val notes = runBlocking { learning(skills, learn = false).learn(after(events(verdict = "fail", extra = used), rejected)) }
+        val notes = runBlocking { learning(skills, learn = false).learn(after(events(verdict = "fail", extra = listOf(RunEvent.SkillUsed(40, "wechat-msg", "injected"))), rejected)) }
+        assertEquals(listOf("verifier_rejected"), skills.get("wechat-msg")!!.outcomes)
         assertEquals(SkillStatus.suspended, skills.get("wechat-msg")!!.status)
         assertEquals("wechat-msg", notes.skillNotes.single().suspended)
     }

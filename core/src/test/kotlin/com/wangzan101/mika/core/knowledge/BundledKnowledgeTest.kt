@@ -77,8 +77,8 @@ class BundledKnowledgeTest {
         assertTrue(hits.size <= 10)
         assertTrue(hits.any { it.kind == "skill" && it.name == "messaging" })
         assertTrue(catalog.find("微信", kind = "app").all { it.kind == "app" })
-        assertTrue(catalog.linkedSkills("wechat").any { it.name == "messaging" })
-        assertTrue(catalog.linkedSkills("zhihu.com").any { it.name == "info-research" })
+        assertTrue("wechat" in catalog.items.single { it.kind == "skill" && it.name == "messaging" }.apps)
+        assertTrue("zhihu.com" in catalog.items.single { it.kind == "skill" && it.name == "info-research" }.sites)
     }
 
     @Test fun skillViewReturnsAttachment() {
@@ -100,7 +100,7 @@ class BundledKnowledgeTest {
         assertEquals(setOf("app", "site", "skill"), catalog.rows.map { it.kind }.toSet())
         val defs = toolDispatcher(FakeScreen(), skills = catalog, sandbox = FakeSandbox()).definitions().joinToString("\n")
         val index = File(GuideCatalog::class.java.classLoader.getResource(KnowledgeIndex.RESOURCE)!!.toURI()).readText()
-        val lines = GuideRecommender.recommend(catalog, "帮我回消息,顺便查下天气").let { r -> listOfNotNull(r.index, r.personal?.let { it.head + it.body }).joinToString("\n") }
+        val lines = GuideRecommender.index(catalog, "帮我回消息,顺便查下天气").orEmpty()
         for (text in listOf(defs, index, lines)) for (old in listOf("domain:", "domains/", "domain/", "\"domain\"", "device:", "devices/", "\"base\"")) {
             assertFalse("found $old", text.contains(old))
         }
