@@ -1,13 +1,6 @@
 name: Windows USB MCP smoke
 
 on:
-  push:
-    branches:
-      - feat/windows-usb-mcp-helper-20261031
-    paths:
-      - 'tools/windows/mika-usb-mcp.ps1'
-      - 'tests/windows/**'
-      - '.github/workflows/windows-mcp-smoke.yml'
   pull_request:
     paths:
       - 'tools/windows/mika-usb-mcp.ps1'
