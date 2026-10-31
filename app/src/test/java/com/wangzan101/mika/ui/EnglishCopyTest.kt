@@ -5,6 +5,7 @@ import com.wangzan101.mika.capsule.CapsuleKind
 import com.wangzan101.mika.i18n.EnglishTexts
 import com.wangzan101.mika.settings.Problem
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -15,7 +16,8 @@ class EnglishCopyTest {
     @Test fun chatPage() {
         assertEquals("Good morning", ChatCopy.greeting(7))
         assertEquals("What should ibot do?", ChatCopy.EMPTY_PROMPT)
-        assertEquals("Open WeChat and message Wang Zan to add me to the ibot beta group", ChatCopy.examples.first().text)
+        assertEquals("Summarize what my selected WeChat group discussed today", ChatCopy.examples[1].text)
+        assertTrue(ChatCopy.examples.none { it.text.contains("Wang Zan") || it.text.contains("beta group", ignoreCase = true) })
         assertEquals("1 earlier step", ChatCopy.earlierSteps(1))
         assertEquals("3 earlier steps", ChatCopy.earlierSteps(3))
     }
@@ -25,6 +27,7 @@ class EnglishCopyTest {
         assertEquals("Set up phone control", PhoneSetupCopy.TITLE)
         assertEquals("Hi, I’m ibot", WelcomeCopy.TITLE)
         assertEquals("About ibot", AboutCopy.TITLE)
+        assertEquals("Upstream Mika: Wang Zan · © 2026\nibot maintainer: lijunpixel", AboutCopy.AUTHOR)
     }
 
     @Test fun capsule() {

@@ -4,9 +4,6 @@ import org.junit.Rule
 import com.wangzan101.mika.i18n.ChineseTexts
 import com.wangzan101.mika.chat.ConversationSummary
 import com.wangzan101.mika.core.shell.BuiltinShellStatus
-import com.wangzan101.mika.settings.AccessibilityState
-import com.wangzan101.mika.settings.Prerequisites
-import com.wangzan101.mika.settings.SystemStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -32,6 +29,8 @@ class ChatCopyTest {
         assertEquals("打开微信，给文件传输助手发消息：ibot 已准备就绪", ChatCopy.examples.first().text)
         assertEquals("ibot", ChatCopy.APP_TITLE)
         assertTrue(ChatCopy.examples.none { it.text.contains("王赞") || it.text.contains("王贊") })
+        assertEquals("帮我总结我指定的微信群聊今天都聊了些什么", ChatCopy.examples[1].text)
+        assertTrue(ChatCopy.examples.none { it.text.contains("内测体验群") || it.text.contains("拉我") })
         assertEquals("帮我订明天早上9:40、9:50、10:00 的闹钟", ChatCopy.examples[4].text)
     }
 

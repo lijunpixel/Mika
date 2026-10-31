@@ -5,8 +5,6 @@ import com.wangzan101.mika.i18n.tr
 import com.wangzan101.mika.about.CheckStatus
 import com.wangzan101.mika.about.MikaLinks
 import com.wangzan101.mika.about.UpdateState
-import com.wangzan101.mika.settings.Prerequisites
-import com.wangzan101.mika.settings.Problem
 
 /** 关于页的文字,以及「检查更新」一行、设置首页「关于 Mika」一行、侧栏入口上的提示怎么显示。 */
 object AboutCopy {
@@ -31,10 +29,6 @@ object AboutCopy {
     val FEEDBACK_SHEET_SUB: String get() = tr(R.string.about_feedback_sheet_sub)
     val FEEDBACK_GITHUB: String get() = tr(R.string.about_feedback_github)
     val FEEDBACK_GITHUB_SUB: String get() = tr(R.string.about_feedback_github_sub)
-    val FEEDBACK_WECHAT: String get() = tr(R.string.about_feedback_wechat)
-    val FEEDBACK_WECHAT_SUB: String get() = tr(R.string.about_feedback_wechat_sub)
-    val FEEDBACK_X: String get() = tr(R.string.about_feedback_x)
-    val FEEDBACK_X_SUB: String get() = tr(R.string.about_feedback_x_sub, MikaLinks.X_HANDLE)
 
     val DIAGNOSTICS: String get() = tr(R.string.diagnostics_copy)
     val DIAGNOSTICS_SUB: String get() = tr(R.string.diagnostics_copy_sub)
@@ -45,19 +39,6 @@ object AboutCopy {
     val DIAGNOSTICS_COPIED: String get() = tr(R.string.diagnostics_copied)
     val DIAGNOSTICS_LOADING: String get() = tr(R.string.diagnostics_loading)
 
-    val GROUP: String get() = tr(R.string.about_group)
-    val GROUP_SUB: String get() = tr(R.string.about_group_sub)
-    val GROUP_SHEET_TITLE: String get() = tr(R.string.about_group_sheet_title)
-    val GROUP_SHEET_SUB: String get() = tr(R.string.about_group_sheet_sub)
-    val GROUP_HINT: String get() = tr(R.string.about_group_hint)
-    val SAVE_QR: String get() = tr(R.string.about_save_qr)
-    val QR_SAVED: String get() = tr(R.string.about_qr_saved)
-    val QR_SAVE_FAILED: String get() = tr(R.string.about_qr_save_failed)
-    val GROUP_ALREADY_ADDED: String get() = tr(R.string.about_group_already_added)
-    val GROUP_ASK_MIKA: String get() = tr(R.string.about_group_ask_mika)
-
-    val FOLLOW: String get() = tr(R.string.about_follow)
-    val FOLLOW_SUB: String get() = tr(R.string.about_follow_sub, MikaLinks.X_HANDLE)
     val REPO: String get() = tr(R.string.about_repo)
     val REPO_SUB: String get() = tr(R.string.about_repo_sub, MikaLinks.REPO_LABEL)
     val GUIDE: String get() = tr(R.string.about_guide)
@@ -66,6 +47,7 @@ object AboutCopy {
     val DATA_NOTE: String get() = tr(R.string.about_data_note)
     val LICENSE_LINK: String get() = tr(R.string.about_license_link)
     val AUTHOR: String get() = tr(R.string.about_author)
+    val UPSTREAM: String get() = tr(R.string.about_upstream)
     val LICENSE_TITLE: String get() = tr(R.string.about_license_title)
 
     val UPDATE_DOWNLOAD: String get() = tr(R.string.about_update_download)
@@ -98,23 +80,6 @@ object AboutCopy {
     fun settingsValue(updateVersion: String?, versionName: String): CheckValue =
         if (updateVersion != null) CheckValue(available(updateVersion), dot = true, highlight = true)
         else CheckValue(versionName.takeIf { it.isNotEmpty() })
-
-    /** 「让 Mika 帮我发消息入群」还差的那一步:提示 [message],去 [fix] 那页补上(为空时去设置首页)。 */
-    enum class GroupTaskGap(private val messageRes: Int, val fix: Fix?) {
-        Model(R.string.about_group_gap_model, Fix.AddModel),
-        Phone(R.string.about_group_gap_phone, Fix.OpenPhoneSetup),
-        TooOld(R.string.about_group_gap_too_old, null);
-
-        val message: String get() = tr(messageRes)
-    }
-
-    /** 这件事要操作微信:模型配好、手机操作就绪才开始;差什么返回什么,都齐了为 null。 */
-    fun groupTaskGap(check: Prerequisites.Check): GroupTaskGap? = when {
-        Problem.NoModel in check.problems -> GroupTaskGap.Model
-        Problem.SystemTooOld in check.problems -> GroupTaskGap.TooOld
-        !check.phoneReady -> GroupTaskGap.Phone
-        else -> null
-    }
 
     /** 侧栏「关于 Mika」上的红点。 */
     fun drawerDot(s: UpdateState): Boolean = s.hasUpdate

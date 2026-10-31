@@ -7,7 +7,7 @@
     <string name="chat_greeting_night">Up late</string>
     <string name="chat_empty_prompt">What should ibot do?</string>
     <string name="chat_example_message">Open WeChat and send File Transfer Assistant a message: ibot is ready</string>
-    <string name="chat_example_group_summary">Summarize what the ibot beta group on WeChat talked about today</string>
+    <string name="chat_example_group_summary">Summarize what my selected WeChat group discussed today</string>
     <string name="chat_example_jobs">Apply to 150 AI product manager jobs on BOSS Zhipin</string>
     <string name="chat_example_music">Open Qishui Music and watch ads to get 24 hours of VIP</string>
     <string name="chat_example_alarms">Set alarms for 9:40, 9:50 and 10:00 tomorrow morning</string>

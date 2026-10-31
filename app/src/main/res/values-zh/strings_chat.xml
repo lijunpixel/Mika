@@ -7,7 +7,7 @@
     <string name="chat_greeting_night">夜深了</string>
     <string name="chat_empty_prompt">想让 ibot 做什么？</string>
     <string name="chat_example_message">打开微信，给文件传输助手发消息：ibot 已准备就绪</string>
-    <string name="chat_example_group_summary">帮我总结微信群聊，ibot内测体验群今天都聊了些啥</string>
+    <string name="chat_example_group_summary">帮我总结我指定的微信群聊今天都聊了些什么</string>
     <string name="chat_example_jobs">在Boss直聘上帮我投递AI产品经理岗位，150个投满</string>
     <string name="chat_example_music">帮我打开汽水音乐，看广告领取24小时听歌VIP会员</string>
     <string name="chat_example_alarms">帮我订明天早上9:40、9:50、10:00 的闹钟</string>
