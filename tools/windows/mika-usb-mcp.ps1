@@ -90,7 +90,7 @@ function Ensure-Forward {
     $existing = Find-Forward
     if ($null -ne $existing) {
         if ($existing.Serial -ne $Serial -or $existing.RemotePort -ne $RemotePort) {
-            throw "Local TCP port $LocalPort already forwards to another destination. Choose -LocalPort 18765."
+            throw "Local TCP port $LocalPort already forwards to another destination. Choose a different -LocalPort."
         }
         return
     }
@@ -146,10 +146,14 @@ if ($device[0].State -ne 'device') {
 }
 
 if ($Action -eq 'Close') {
-    # This invalidates the phone-side token; removing only the forwarding is insufficient.
+    # Read the phone's actual port *before* disabling the service and deleting its metadata.
+    # If the app is already off, fall back to the upstream default only for an owned mapping.
+    $closeInfo = $null
+    try { $closeInfo = Get-Info } catch { }
+    $remoteToRemove = if ($null -ne $closeInfo) { [int]$closeInfo.port } else { 8765 }
+    # Disabling on the phone invalidates the token. Removing only a local forward is not enough.
     $null = Invoke-Adb -Arguments @('shell', 'sh', $connectionScript, 'off') -Step 'disable USB MCP'
-    # Server uses 8765 by default; if the file is now deleted, remote port is known from protocol.
-    Remove-OwnedForward -RemotePort 8765
+    Remove-OwnedForward -RemotePort $remoteToRemove
     Write-Output "Mika USB MCP disabled on $Serial; owned local forwarding removed."
     exit 0
 }
