@@ -45,9 +45,7 @@ class AboutScreenTest {
     private class Calls {
         val urls = mutableListOf<String>()
         var checks = 0
-        var saves = 0
         var licenses = 0
-        var asks = 0
     }
 
     private val sampleDiagnostics = "Mika 诊断信息 / Mika diagnostics\n\n[App]\nversion: 0.1.0 (build abc1234)\n"
@@ -59,7 +57,7 @@ class AboutScreenTest {
                 AboutScreen(
                     versionName = "0.1.0", build = "abc1234", beta = true, update = update, issueUrl = "issue://prefilled",
                     onCheck = { calls.checks++ }, onOpenUrl = { calls.urls += it },
-                    onSaveQr = { calls.saves++; true }, onAskMikaToJoin = { calls.asks++ }, onOpenLicense = { calls.licenses++ }, onBack = {},
+                    onOpenLicense = { calls.licenses++ }, onBack = {},
                     diagnostics = { sampleDiagnostics },
                 )
             }
@@ -75,15 +73,24 @@ class AboutScreenTest {
     @Test
     fun showsHeroRowsNoteAndFooter() {
         about()
-        compose.onNodeWithText("Mika").assertIsDisplayed()
+        compose.onNodeWithText("ibot").assertIsDisplayed()
         compose.onNodeWithText(AboutCopy.TAGLINE).assertIsDisplayed()
         compose.onNodeWithText("版本 0.1.0").assertIsDisplayed()
         compose.onNodeWithText("Beta").assertIsDisplayed()
         compose.onNodeWithText("· 构建 abc1234").assertIsDisplayed()
-        for (t in listOf("检查更新", "更新记录", "反馈问题", "加入内测群", "关注作者", "开源仓库", "使用说明与参与方式", AboutCopy.DATA_NOTE, AboutCopy.AUTHOR)) {
+        for (t in listOf("检查更新", "更新记录", "反馈问题", "开源仓库", "使用说明与参与方式", AboutCopy.DATA_NOTE,
+            "上游 Mika 作者：王赞 · © 2026\nibot 维护：lijunpixel", AboutCopy.AUTHOR, AboutCopy.UPSTREAM)) {
             scrollTo(t)
             compose.onNodeWithText(t).assertIsDisplayed()
         }
+        compose.onAllNodesWithTag("about-upstream").assertCountEquals(1)
+        compose.onAllNodesWithText("加入内测群").assertCountEquals(0)
+        compose.onAllNodesWithText("关注作者").assertCountEquals(0)
+        compose.onAllNodesWithText("微信").assertCountEquals(0)
+        compose.onAllNodesWithText("二维码").assertCountEquals(0)
+        compose.onAllNodesWithText("X", substring = true).assertCountEquals(0)
+        compose.onAllNodesWithTag("wechat-qr").assertCountEquals(0)
+        compose.onAllNodesWithTag("group-ask-mika").assertCountEquals(0)
         // 许可证只在页脚,不再单独一行
         compose.onAllNodesWithText("开源许可").assertCountEquals(0)
     }
@@ -91,11 +98,11 @@ class AboutScreenTest {
     @Test
     fun externalRowsOpenLinks() {
         val calls = about()
-        for (t in listOf("关注作者", "开源仓库", "使用说明与参与方式")) {
+        for (t in listOf(AboutCopy.UPSTREAM, "开源仓库", "使用说明与参与方式")) {
             scrollTo(t)
             compose.onNodeWithText(t).performClick()
         }
-        assertEquals(listOf(MikaLinks.X, MikaLinks.REPO, MikaLinks.README), calls.urls)
+        assertEquals(listOf(MikaLinks.UPSTREAM_REPO, MikaLinks.REPO, MikaLinks.README), calls.urls)
     }
 
     @Test
@@ -106,14 +113,14 @@ class AboutScreenTest {
     }
 
     @Test
-    fun feedbackSheetHasFourOptions() {
+    fun feedbackSheetHasOnlyGitHubAndDiagnostics() {
         val calls = about()
         compose.onNodeWithText("反馈问题").performClick()
         compose.awaitOne(AboutCopy.FEEDBACK_SHEET_SUB)
-        compose.onAllNodesWithTag("feedback-option").assertCountEquals(4)
+        compose.onAllNodesWithTag("feedback-option").assertCountEquals(2)
         compose.onNodeWithText("复制诊断信息").assertIsDisplayed()
-        compose.onNodeWithText(AboutCopy.FEEDBACK_WECHAT).assertIsDisplayed()
-        compose.onNodeWithText(AboutCopy.FEEDBACK_X).assertIsDisplayed()
+        compose.onAllNodesWithText("微信").assertCountEquals(0)
+        compose.onAllNodesWithText("X", substring = true).assertCountEquals(0)
         compose.onNodeWithText(AboutCopy.FEEDBACK_GITHUB).performClick()
         compose.waitForIdle()
         assertEquals(listOf("issue://prefilled"), calls.urls)
@@ -137,40 +144,6 @@ class AboutScreenTest {
             clip = cm.primaryClip?.getItemAt(0)?.text?.toString()
         }
         assertEquals(sampleDiagnostics, clip)
-    }
-
-    @Test
-    fun feedbackWeChatOpensQrSheet() {
-        val calls = about()
-        compose.onNodeWithText("反馈问题").performClick()
-        compose.awaitOne(AboutCopy.FEEDBACK_WECHAT).performClick()
-        compose.awaitOne(AboutCopy.GROUP_SHEET_TITLE)
-        compose.onNodeWithTag("wechat-qr").assertExists()
-        compose.onNodeWithText(AboutCopy.SAVE_QR).performClick()
-        assertEquals(1, calls.saves)
-    }
-
-    @Test
-    fun groupRowOpensQrSheet() {
-        about()
-        compose.onNodeWithText("加入内测群").performClick()
-        compose.awaitOne(AboutCopy.GROUP_SHEET_SUB).assertIsDisplayed()
-        compose.onNodeWithTag("wechat-qr").assertExists()
-        compose.onNodeWithText(AboutCopy.GROUP_HINT).assertExists()
-    }
-
-    /** 二维码下面:已经加过作者微信的,点一下让 Mika 去发消息;连点只算一次。 */
-    @Test
-    fun groupSheetAsksMikaOnce() {
-        val calls = about()
-        compose.onNodeWithText("加入内测群").performClick()
-        compose.awaitOne(AboutCopy.GROUP_SHEET_SUB)
-        compose.onNodeWithText(AboutCopy.SAVE_QR).assertExists()
-        compose.onNodeWithText(AboutCopy.GROUP_ALREADY_ADDED).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("group-ask-mika").performScrollTo().assertIsDisplayed().performClick()
-        compose.waitForIdle()
-        assertEquals(1, calls.asks)
-        compose.onAllNodesWithTag("group-ask-mika").assertCountEquals(0)
     }
 
     @Test

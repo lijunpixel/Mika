@@ -59,7 +59,7 @@ import com.wangzan101.mika.cap.sandbox.SandboxOwner
 import com.wangzan101.mika.core.workspace.SandboxTree
 import com.wangzan101.mika.task.TaskEnvironment
 import com.wangzan101.mika.task.ResourceScheduler
-import com.wangzan101.mika.task.McpTaskHub
+import com.wangzan101.mika.task.RemoteTaskHub
 import com.wangzan101.mika.task.FileChildRunStore
 import com.wangzan101.mika.task.TriggerRuntime
 
@@ -79,7 +79,12 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
 
     /** 各任务的标签池共用的标签总数上限。 */
     val resources = ResourceScheduler()
-    val mcpTasks by lazy { McpTaskHub(this) }
+    val remoteTasks by lazy { RemoteTaskHub(this) }
+    val collaboration by lazy {
+        com.wangzan101.mika.collaboration.CollaborationRuntime(this, providers).also {
+            it.phoneExecutionBridge = com.wangzan101.mika.task.CollaborationPhoneBridge(this)
+        }
+    }
 
     /**
      * 电脑连接(MCP):开关、访问令牌(和服务商的 Key 一样加密存)、监听。局域网那种默认关着;
@@ -92,7 +97,8 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
             com.wangzan101.mika.settings.McpUsbSettings(settingsDir,
                 bootId = { android.provider.Settings.Global.getString(contentResolver, android.provider.Settings.Global.BOOT_COUNT) ?: "null" },
                 infoFile = { getExternalFilesDir(null)?.let { java.io.File(it, com.wangzan101.mika.core.mcp.McpUsb.INFO_FILE) } }),
-            mcpTasks)
+            com.wangzan101.mika.mcp.CollaborationRemoteTasks(remoteTasks, collaboration),
+            com.wangzan101.mika.device.AndroidDeviceAccess(this) { phone.hub.shell.value })
     }
     val childRuns by lazy { FileChildRunStore(java.io.File(filesDir, "children-v3.json")) }
     override val tabBudget get() = resources.tabBudget
@@ -104,7 +110,7 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
     val usage: UsageLedger by lazy { UsageLedger(java.io.File(filesDir, "usage-v1.json")) }
 
     /** 模型配置与 Key;建出的模型都套上计量,记到 [usage]。 */
-    override val providers: ProviderStore by lazy { ProviderStore.create(this, usage, "Mika/${BuildConfig.VERSION_NAME}") }
+    override val providers: ProviderStore by lazy { ProviderStore.create(this, usage, "ibot/${BuildConfig.VERSION_NAME}") }
 
     /** 用 ChatGPT 登录:跑在 App 的作用域里,期间开前台服务撑住进程(见 [com.wangzan101.mika.settings.ChatGptSignIns])。 */
     val chatGptSignIn by lazy {
@@ -184,7 +190,8 @@ class MikaApp : Application(), WebOwner, SandboxOwner, TaskEnvironment.Owner, Ph
 
     /** 检查更新:查到的新版本跟进程走,侧栏、设置首页、关于页的红点看同一份。 */
     val updates: com.wangzan101.mika.about.UpdateChecker by lazy {
-        com.wangzan101.mika.about.UpdateChecker(java.io.File(filesDir, "update-v1.json"), BuildConfig.VERSION_NAME)
+        com.wangzan101.mika.about.UpdateChecker(java.io.File(filesDir, "update-v1.json"), BuildConfig.VERSION_NAME,
+            releaseApi = "https://api.github.com/repos/lijunpixel/Mika/releases/latest")
     }
 
     /** 浮在别的 App 上的悬浮胶囊。 */

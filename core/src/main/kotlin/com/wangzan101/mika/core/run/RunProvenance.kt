@@ -9,4 +9,6 @@ enum class Attendance { Present, Reachable, Unattended }
 data class RunProvenance(
     val origin: RunOrigin = RunOrigin.Ui,
     val attendance: Attendance = Attendance.Present,
+    /** Collaboration never treats general phone access as consent to an outward action. */
+    val strictOutward: Boolean = false,
 )

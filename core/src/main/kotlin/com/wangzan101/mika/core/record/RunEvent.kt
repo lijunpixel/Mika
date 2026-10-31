@@ -218,7 +218,7 @@ sealed interface RunEvent {
     @Serializable @SerialName("memory_saved")
     data class MemorySaved(override val atMs: Long, val id: String, val kind: String, val status: String) : RunEvent
 
-    /** 用到的技能:[how] = injected(任务开始注入了全文)| viewed(Agent 用 skill_read 看了个人技能)。 */
+    /** 用到的个人技能:[how] = viewed(Agent 用 skill_read 看了它);旧记录里还有 injected(以前任务开始注入了全文),读时一样算用到。 */
     @Serializable @SerialName("skill_used")
     data class SkillUsed(override val atMs: Long, val name: String, val how: String) : RunEvent
 

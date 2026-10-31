@@ -5,13 +5,13 @@
     <string name="chat_greeting_afternoon">下午好</string>
     <string name="chat_greeting_evening">晚上好</string>
     <string name="chat_greeting_night">夜深了</string>
-    <string name="chat_empty_prompt">想让 Mika 做什么？</string>
-    <string name="chat_example_message">打开微信，给王赞发消息，让他拉我进Mika内测体验群</string>
-    <string name="chat_example_group_summary">帮我总结微信群聊，Mika内测体验群今天都聊了些啥</string>
+    <string name="chat_empty_prompt">想让 ibot 做什么？</string>
+    <string name="chat_example_message">打开微信，给文件传输助手发消息：ibot 已准备就绪</string>
+    <string name="chat_example_group_summary">帮我总结我指定的微信群聊今天都聊了些什么</string>
     <string name="chat_example_jobs">在Boss直聘上帮我投递AI产品经理岗位，150个投满</string>
     <string name="chat_example_music">帮我打开汽水音乐，看广告领取24小时听歌VIP会员</string>
     <string name="chat_example_alarms">帮我订明天早上9:40、9:50、10:00 的闹钟</string>
-    <string name="chat_example_creator">打开小红书，帮我总结一下博主王赞不赞的内容</string>
+    <string name="chat_example_creator">打开小红书，帮我总结一下关于 ibot 的公开内容</string>
     <string name="chat_working_on">正在操作%1$s</string>
     <string name="chat_working">正在处理</string>
     <string name="chat_wait_unlock">等你解锁手机</string>
@@ -22,7 +22,7 @@
     </plurals>
     <string name="chat_background_note">在后台进行，可以继续用手机。点小画面可以放大看。</string>
     <string name="chat_placeholder_busy">补充或改要求…</string>
-    <string name="chat_placeholder_answer">回答 Mika 的问题</string>
+    <string name="chat_placeholder_answer">回答 ibot 的问题</string>
     <string name="chat_placeholder_more">继续说点什么…</string>
     <string name="chat_cannot_start">还不能开始任务</string>
     <string name="chat_missing">还缺:%1$s</string>
@@ -93,11 +93,11 @@
     <string name="attach_album">相册</string>
     <string name="attach_files">文件</string>
     <string name="attach_recent">最近的照片</string>
-    <string name="attach_recent_partial">你允许 Mika 访问的照片</string>
+    <string name="attach_recent_partial">你允许 ibot 访问的照片</string>
     <string name="attach_all">全部照片</string>
     <string name="attach_change">更改范围</string>
     <string name="attach_no_photos">还没有照片</string>
-    <string name="attach_need_access">在这里直接选照片,需要允许 Mika 访问照片</string>
+    <string name="attach_need_access">在这里直接选照片,需要允许 ibot 访问照片</string>
     <string name="attach_grant">允许访问照片</string>
     <string name="attach_grant_hint">不允许也可以点上面的「相册」,用系统的照片选择器</string>
     <string name="attach_full">一次最多 %1$d 个附件</string>
@@ -117,10 +117,10 @@
     <string name="attach_file_and_more">%1$s 等 %2$d 个文件</string>
     <string name="screen_tag">你此刻的屏幕</string>
     <string name="screen_blocked">没截到：这个页面不允许截图</string>
-    <string name="screen_camera">截当前屏幕发给 Mika</string>
+    <string name="screen_camera">截当前屏幕发给 ibot</string>
     <string name="screen_remove">不要这张截图</string>
-    <string name="screen_send">把此刻的屏幕发给 Mika</string>
-    <string name="pip_screen">Mika 的虚拟屏</string>
+    <string name="screen_send">把此刻的屏幕发给 ibot</string>
+    <string name="pip_screen">ibot 的虚拟屏</string>
     <string name="collapse">收起</string>
     <string name="no_app_for_link">没有能打开这个链接的 App</string>
     <string name="source_none">没有保存这次答复的来源</string>
@@ -133,6 +133,6 @@
     <string name="chat_copied">已复制</string>
     <string name="chat_select_hint">长按文字就能选择</string>
     <string name="chat_quote_remove">去掉引用</string>
-    <string name="chat_quoting_mika">引用 Mika:%1$s</string>
+    <string name="chat_quoting_mika">引用 ibot:%1$s</string>
     <string name="chat_quoting_you">引用你的话:%1$s</string>
 </resources>

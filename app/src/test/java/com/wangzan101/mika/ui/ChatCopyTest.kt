@@ -29,7 +29,11 @@ class ChatCopyTest {
     @Test fun sixDistinctNonBlankExamples() {
         assertEquals(6, ChatCopy.examples.size)
         assertEquals(6, ChatCopy.examples.map { it.text }.filter { it.isNotBlank() }.toSet().size)
-        assertEquals("打开微信，给王赞发消息，让他拉我进Mika内测体验群", ChatCopy.examples.first().text)
+        assertEquals("打开微信，给文件传输助手发消息：ibot 已准备就绪", ChatCopy.examples.first().text)
+        assertEquals("ibot", ChatCopy.APP_TITLE)
+        assertTrue(ChatCopy.examples.none { it.text.contains("王赞") || it.text.contains("王贊") })
+        assertEquals("帮我总结我指定的微信群聊今天都聊了些什么", ChatCopy.examples[1].text)
+        assertTrue(ChatCopy.examples.none { it.text.contains("内测体验群") || it.text.contains("拉我") })
         assertEquals("帮我订明天早上9:40、9:50、10:00 的闹钟", ChatCopy.examples[4].text)
     }
 
@@ -74,7 +78,7 @@ class ChatCopyTest {
     @Test fun placeholderFollowsTheComposer() {
         assertEquals(ChatCopy.EMPTY_PROMPT, ChatCopy.placeholder(ComposerMode.Idle, hasHistory = false))
         assertEquals("继续说点什么…", ChatCopy.placeholder(ComposerMode.Idle, hasHistory = true))
-        assertEquals("回答 Mika 的问题", ChatCopy.placeholder(ComposerMode.Answer, hasHistory = true))
+        assertEquals("回答 ibot 的问题", ChatCopy.placeholder(ComposerMode.Answer, hasHistory = true))
         assertEquals("补充或改要求…", ChatCopy.placeholder(ComposerMode.Busy, hasHistory = true))
     }
 

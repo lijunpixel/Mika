@@ -2,18 +2,18 @@ outcome: Succeeded(answer=知乎热榜第一是「今日话题」, verified=true
 
 ## main #1
 system: len=16640 #d73defaf | You are Mika, the user's personal assistant on their phone. Your job is to get ⏎…
-tools: #7c246f7d [wait, ask_user, request_confirmation, end_not_done, knowledge_search, knowledge_read, skill_search, skill_read, phone_list_apps, phone_launch_app, phone_set_alarm, phone_set_timer, phone_add_calendar_event, web_navigate, web_read_page, run_command]
+tools: #005bcee5 [wait, ask_user, request_confirmation, end_not_done, knowledge_search, knowledge_read, skill_search, skill_read, phone_list_apps, phone_launch_app, phone_set_alarm, phone_set_timer, phone_add_calendar_event, web_navigate, web_read_page, run_command]
 user:
   text #110070e4 | 用网页看一下知乎热榜
 user:
   ctx:app_knowledge source="知乎 · com.zhihu.android" #4818960c | (Note: scripts marked runnable can be run with run_bundled_script; other scripts and tools this phone does not have are …
 user:
-  ctx:skills_index source="knowledge and skills index" #799590a5 | App and website knowledge you can refer to (read the full text with knowledge_read when needed): ⏎…
+  ctx:skills_index source="knowledge and skills index" #dc8ca96d | App and website knowledge you can refer to (read the full text with knowledge_read when needed): ⏎…
   ctx:runtime_state source="runtime" #7d60ad60 | Current place: no screen or page read yet ⏎…
 
 ## main #2
 system: len=29389 #09bfc217 | You are Mika, the user's personal assistant on their phone. Your job is to get ⏎…
-tools: #5d21a5b4 [wait, ask_user, request_confirmation, end_not_done, knowledge_search, knowledge_read, skill_search, skill_read, view_past_screens, hand_to_user, handle_obstacle, phone_list_apps, phone_launch_app, phone_set_alarm, phone_set_timer, phone_add_calendar_event, web_observe, web_list_elements, web_tap, web_scroll, web_swipe, web_type_text, web_clear_text, web_back, web_press_key, web_diagnose, web_navigate, web_read_page, web_evaluate_js, web_tabs, web_downloads, web_upload, web_site_mode, web_script, web_interact, web_capture, web_wait_for, run_command]
+tools: #3741f156 [wait, ask_user, request_confirmation, end_not_done, knowledge_search, knowledge_read, skill_search, skill_read, view_past_screens, hand_to_user, handle_obstacle, phone_list_apps, phone_launch_app, phone_set_alarm, phone_set_timer, phone_add_calendar_event, web_observe, web_list_elements, web_tap, web_scroll, web_swipe, web_type_text, web_clear_text, web_back, web_press_key, web_diagnose, web_navigate, web_read_page, web_evaluate_js, web_tabs, web_downloads, web_upload, web_site_mode, web_script, web_interact, web_capture, web_wait_for, run_command]
 … 3 messages unchanged
 assistant:
   call main_1 web_navigate {"url":"https://www.zhihu.com/hot"}
@@ -21,12 +21,10 @@ tool:
   result main_1 #23c39ad1 | {"ok":true,"tabId":"t1","url":"https://www.zhihu.com/hot","title":"知乎","httpStatus":200,"loaded":true,"newTab":false,"moreTools":"From your next call on you also have the full web tools (web_observe, …
 user:
   ctx:site_knowledge source="知乎 · zhihu.com" #293141fc | (Note: scripts marked runnable can be run with run_bundled_script; other scripts and tools this phone does not have are …
-user:
-  ctx:skills_index source="skills linked to 知乎" #a3e3e741 | Skills you can refer to (read the full text with skill_read when needed): ⏎…
   ctx:runtime_state source="runtime" #01a8aa08 | Current place: website zhihu.com (desktop version) ⏎…
 
 ## main #3
-… 7 messages unchanged
+… 6 messages unchanged
 assistant:
   call main_2 web_read_page {}
 tool:

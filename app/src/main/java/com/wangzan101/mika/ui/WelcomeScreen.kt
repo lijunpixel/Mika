@@ -43,7 +43,7 @@ import com.wangzan101.mika.ui.theme.MikaType
 
 /** 上手第一步:说清 Mika 是什么、能做哪几类事,开始前要做的两件事和大概时间。 */
 @Composable
-fun WelcomeScreen(onStart: () -> Unit) {
+fun WelcomeScreen(onOpenCollaboration: (() -> Unit)? = null, onStart: () -> Unit) {
     val c = MikaTheme.colors
     PageBackground {
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars).windowInsetsPadding(WindowInsets.navigationBars)) {
@@ -71,6 +71,9 @@ fun WelcomeScreen(onStart: () -> Unit) {
                     style = MikaType.Hint, fontSize = 12.5.sp, color = c.ink3, textAlign = TextAlign.Center,
                 )
                 MikaButton(WelcomeCopy.START, onStart, Modifier.fillMaxWidth().testTag("welcome-start"))
+                onOpenCollaboration?.let { open ->
+                    MikaButton("ibot · Multi-AI", open, Modifier.fillMaxWidth().testTag("welcome-collaboration"))
+                }
             }
         }
     }

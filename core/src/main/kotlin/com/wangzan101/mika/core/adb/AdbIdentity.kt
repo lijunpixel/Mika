@@ -6,6 +6,9 @@ import java.io.File
 import java.math.BigInteger
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.security.KeyFactory
 import java.security.KeyPair
 import java.security.KeyPairGenerator
@@ -92,7 +95,11 @@ class WrappedKeyFile(private val file: File, private val wrappingKey: () -> Secr
         file.parentFile?.mkdirs()
         val tmp = File(file.path + ".tmp")
         tmp.writeBytes(out)
-        check(tmp.renameTo(file)) { "cannot write ${file.name}" }
+        try {
+            Files.move(tmp.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        } catch (_: AtomicMoveNotSupportedException) {
+            Files.move(tmp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
     }
 
     override fun clear() {

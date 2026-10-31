@@ -1,0 +1,30 @@
+name: Windows USB MCP smoke
+
+on:
+  pull_request:
+    paths:
+      - 'tools/windows/mika-usb-mcp.ps1'
+      - 'tests/windows/**'
+      - '.github/workflows/windows-mcp-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-powershell:
+    name: Windows PowerShell 5.1
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run offline fake-ADB tests
+        shell: powershell
+        run: ./tests/windows/test-mika-usb-mcp.ps1
+  powershell-7:
+    name: PowerShell 7
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run offline fake-ADB tests
+        shell: pwsh
+        run: ./tests/windows/test-mika-usb-mcp.ps1

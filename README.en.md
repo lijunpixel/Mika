@@ -1,21 +1,22 @@
 <div align="center">
 
-<img src="docs/media/logo.png" alt="Mika" width="120" />
+<h1><img src="docs/media/logo.png" alt="" width="72" align="center" />&nbsp; Mika</h1>
 
-# Mika
+<a href="https://github.com/wangzan101/Mika/stargazers"><img src="https://img.shields.io/github/stars/wangzan101/Mika?style=flat&logo=github&label=Star&color=1f6feb" alt="stars" /></a>
+<a href="https://github.com/wangzan101/Mika/releases"><img src="https://img.shields.io/github/downloads/wangzan101/Mika/total?label=downloads&color=2ea043" alt="downloads" /></a>
+<a href="https://github.com/wangzan101/Mika/releases/latest"><img src="https://img.shields.io/github/v/release/wangzan101/Mika?include_prereleases&label=version" alt="version" /></a>
+<img src="https://img.shields.io/badge/Android-12%2B-3DDC84?logo=android&logoColor=white" alt="android" />
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-lightgrey" alt="license" /></a>
+<a href="https://x.com/wangzan101"><img src="https://img.shields.io/badge/X-%40wangzan101-000000?logo=x&logoColor=white" alt="X @wangzan101" /></a>
 
-[简体中文](README.md) | English
+[简体中文](README.md) · English
 
-**A personal AI assistant on your phone that operates apps, browses the web and gets things done for you.**
-
+**A personal AI assistant on your phone that operates apps, browses the web and gets things done for you.**<br/>
 It works on a hidden background screen, so you can keep using your phone.
 
-<a href="https://github.com/wangzan101/Mika/releases/latest"><img src="https://img.shields.io/github/v/release/wangzan101/Mika?include_prereleases&label=version" alt="version" /></a>
-<img src="https://img.shields.io/badge/Android-13%2B-3DDC84" alt="android" />
-<img src="https://img.shields.io/badge/sandbox-arm64-blue" alt="sandbox" />
-<a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-lightgrey" alt="license" /></a>
+<h3><a href="https://github.com/wangzan101/Mika/releases/latest">⬇ Download Mika (Android APK)</a></h3>
 
-[Download APK](https://github.com/wangzan101/Mika/releases/latest) · [Install](#install) · [Quick start](#quick-start) · [What it can do](#what-it-can-do) · [FAQ](#faq) · [Contributing](#contributing)
+[Install](#install) · [Quick start](#quick-start) · [What it can do](#what-it-can-do) · [FAQ](#faq) · [Contributing](#contributing)
 
 </div>
 
@@ -31,7 +32,7 @@ Details for each step are in [Quick start](#quick-start) below.
 
 **Option 2: let an AI agent on your computer do it**
 
-Connect the phone to your computer with a USB cable, turn on USB debugging on the phone, and send this sentence to an AI agent on the computer that can run commands:
+Connect the phone to your computer with a USB cable, turn on USB debugging on the phone (don't change other switches in Developer options unless the agent asks you to: some can erase the phone), and send this sentence to an AI agent on the computer that can run commands:
 
 ```
 Follow https://github.com/wangzan101/Mika/blob/main/docs/install-with-agent.en.md to install Mika on the Android phone connected over USB.
@@ -166,9 +167,11 @@ Apps and websites that already have usage knowledge (names as they appear in the
 - Each conversation gets a workspace that can run Python, Node and shell commands, process files you send, and save results to your phone's Download/Mika folder.
 - Offline by default; when needed, turn on "Allow scripts to access the network" (允许脚本联网) under "Files & compute" (文件与计算环境) in Settings. arm64 devices only.
 
-### AI tools on your computer can use it (MCP)
+### AI tools on your computer can use it (CLI / MCP)
 
 With the phone connected to a computer, AI tools there can hand Mika tasks over MCP and get the results back. One command turns it on; USB only and token-protected. A LAN option is in Settings, off by default. See the [computer access guide](docs/mcp.en.md).
+
+You can also install the [computer CLI and Agent Skill](docs/cli.en.md) and use `mika connect`, `mika task run` and `mika task wait`. CLI and MCP are peer entry points into the same phone task service; the CLI requires no MCP configuration. An APK containing task API v1 is required.
 
 ## Quick start
 
@@ -192,7 +195,7 @@ Mika uses accessibility to read the UI and tap. You don't need to turn it on by 
 
 ### 3. Pair wireless debugging (once)
 
-Open "Set up phone control" (设置手机操作) in Settings and follow the checklist: enable Developer options, USB debugging and Wireless debugging, then pair using the 6-digit pairing code.
+Open "Set up phone control" (设置手机操作) in Settings and follow the checklist: enable Developer options, USB debugging and Wireless debugging, then pair using the 6-digit pairing code. In Developer options, don't change switches Mika doesn't mention: some can erase the phone, such as "Boot with 16 KB page size".
 
 First time, stuck on a step, or not sure where the pairing code goes? See the [phone control setup guide](docs/setup-guide.en.md): it covers where to tap for each step, how to tell it worked, and fixes for common snags.
 
@@ -292,12 +295,14 @@ PRs welcome. Start with [`docs/architecture.md`](docs/architecture.md) (written 
 
 ### Build and test
 
+CLI tests also require Python 3.10+; select an interpreter with `-PmikaPython=/path/to/python3`.
+
 Requires JDK 17 and the Android SDK (`sdk.dir` in `local.properties`, or the `ANDROID_HOME` environment variable).
 
 ```bash
 ./gradlew :app:assembleDebug                  # debug build
 ./gradlew :app:assemblePerf                   # build for judging smoothness: precompiled and non-debuggable like release, debug-signed, installs over the debug build
-./gradlew :core:test :app:testDebugUnitTest   # unit tests
+./gradlew :core:test :core:cliTest :app:testDebugUnitTest   # unit tests
 ```
 
 The debug build is not precompiled and its UI is several times slower; use the perf build to judge smoothness.
@@ -329,8 +334,8 @@ The debug build is not precompiled and its UI is several times slower; use the p
 
 <a href="https://star-history.com/#wangzan101/Mika&Date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&theme=dark&v=20261031-1500" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&v=20261031-1500" width="600" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&theme=dark&v=20261031-1751" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=wangzan101/Mika&type=Date&v=20261031-1751" width="600" />
   </picture>
 </a>
 

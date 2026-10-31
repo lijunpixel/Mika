@@ -3,7 +3,6 @@ package com.wangzan101.mika.core.skills
 import com.wangzan101.mika.core.model.Author
 import com.wangzan101.mika.core.knowledge.FrontMatter
 import com.wangzan101.mika.core.knowledge.PERSONAL_KIND
-import com.wangzan101.mika.core.knowledge.RECOMMEND_MIN_SCORE
 import com.wangzan101.mika.core.knowledge.GuideCatalog
 import com.wangzan101.mika.core.memory.SensitiveFilter
 import com.wangzan101.mika.core.model.ChatModel
@@ -169,14 +168,18 @@ object ActionDigest {
 }
 
 sealed interface DraftResult {
-    /** [isUpdateOf]:与已有个人技能相近,作为它的更新起草。 */
-    data class Draft(val skill: PersonalSkill, val isUpdateOf: String?) : DraftResult
+    /**
+     * [isUpdateOf]:模型判为已有个人技能的同一类事,作为它的更新起草;
+     * [replacesPending]:判为一份待确认草稿的同一类事,是那份草稿的编号——存回原处换掉它,不另起一份。
+     */
+    data class Draft(val skill: PersonalSkill, val isUpdateOf: String?, val replacesPending: String? = null) : DraftResult
     data class Dropped(val reason: String) : DraftResult
 }
 
 /**
  * 一次单独的模型调用(不带工具)把办成的任务写成技能草稿,再由代码校验;不过就丢弃,不打扰用户。
  * 发给模型的是目标、最终回答、回答的来源(哪一步在哪儿读的)和动作清单;目标里的值、输入的文字换成占位,不含读到的原文。
+ * 另列出已有的个人技能(连同待确认的草稿):这次的事和哪份是同一类事,由模型在头部写 `updates: <名字>` 说明,代码只核对名字确有其事。
  */
 class SkillDrafter(private val model: ChatModel) {
     suspend fun draft(input: DraftInput, existing: PersonalSkills, catalog: GuideCatalog): DraftResult {
@@ -184,7 +187,8 @@ class SkillDrafter(private val model: ChatModel) {
         // 回答和屏上的字照原样给、照原样收:里面的页面、按钮名字正是做法本身
         val literals = SkillRedactor.literals(input.goal, emptyList()) + SkillRedactor.textLiterals(typedTexts(input.events, input.tools))
         val keepDigits = catalogDigits(catalog)
-        val request = SkillRedactor.scrubNumbers(SkillRedactor.redact(request(input), literals), keepDigits)
+        // 已有技能的名字照原样给(换了数字就对不上了);它们是用户自己的技能,不是这一次的值
+        val request = SkillRedactor.scrubNumbers(SkillRedactor.redact(request(input), literals), keepDigits) + "\n" + existingSkills(existing)
         val reply = try {
             model.complete(PROMPT, listOf(Message(Role.User, listOf(Part.Text(request)), Author.Mika)), emptyList())
         } catch (e: CancellationException) {
@@ -195,22 +199,23 @@ class SkillDrafter(private val model: ChatModel) {
         val redacted = SkillRedactor.redact(stripFence(reply.parts.filterIsInstance<Part.Text>().joinToString("") { it.text }), literals)
         // 先按原样查一遍:草稿里写了密码、卡号这类东西,说明起草走偏了,数字换掉也不收
         if (SensitiveFilter.hit(redacted) != null) return DraftResult.Dropped("sensitive")
-        val md = SkillRedactor.scrubNumbers(redacted, keepDigits)
+        // 要更新哪份在换数字之前取:技能名里的数字是名字的一部分
+        val updates = (FrontMatter.parse(redacted).first["updates"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
+        val md = PersonalSkills.withoutField(SkillRedactor.scrubNumbers(redacted, keepDigits), "updates")
 
         validate(md, input.toolNames, input.tools.nameOf(Verb.RunBundledScript), catalog.runnableScripts())?.let { return DraftResult.Dropped(it) }
         val meta = FrontMatter.parse(md).first
         val name = meta["name"] as String
-        val description = meta["description"] as String
 
-        val surfaces = surfaces(meta)
-        // 已有一份相近的草稿等用户处理:不再堆一份
-        if (similar(description, surfaces, existing.pending(), catalog) != null) return DraftResult.Dropped("similar_draft_pending")
-        // 已收下的(在用或停用的)相近技能:作为它的更新
-        val updateOf = similar(description, surfaces, existing.list(), catalog)
+        // 模型指的是一份待确认的草稿:换掉那份(它若是某份已有技能的更新,新草稿接着更新那份);
+        // 指的是已收下的(在用、试用或停用的):作为它的更新。名字对不上的(没有这份、是内置技能)不算,当作新的一份
+        val pending = updates?.let { u -> existing.drafts().entries.firstOrNull { it.value.name == u } }
+        val updateOf = if (pending != null) pending.value.replacesDraftOf else updates?.takeIf { existing.get(it) != null }
         // 新起草的不能顶掉内置技能、已有个人技能或草稿;更新草稿一律用被更新那份的名字(收下时覆盖它,头部名字要对得上)
-        if (updateOf == null && (existing.get(name) != null || existing.pending().any { it.name == name } || catalog.items.any { it.name == name }))
+        if (pending == null && updateOf == null &&
+            (existing.get(name) != null || existing.pending().any { it.name == name } || catalog.items.any { it.name == name }))
             return DraftResult.Dropped("name_taken")
-        val finalName = updateOf ?: name
+        val finalName = pending?.value?.name ?: updateOf ?: name
         // 出自哪次运行由代码写:请求里的数字都换成了占位,模型抄不出真的运行编号
         val finalMd = PersonalSkills.withField(PersonalSkills.withName(md, finalName), "learned_from", input.runId)
 
@@ -219,18 +224,16 @@ class SkillDrafter(private val model: ChatModel) {
             createdAt = input.events.lastOrNull()?.atMs ?: 0L, outcomes = emptyList(),
             baseHash = updateOf?.let { name -> existing.get(name)?.markdown?.let { PersonalSkills.fingerprint(it) } },
         )
-        return DraftResult.Draft(skill, updateOf)
+        return DraftResult.Draft(skill, updateOf, pending?.key)
     }
 
-    /** [candidates] 里描述相近(检索得分过阈值)且 App/网站有交集的那份的名字。 */
-    private fun similar(description: String, surfaces: Set<String>, candidates: List<PersonalSkill>, catalog: GuideCatalog): String? {
-        if (candidates.isEmpty()) return null
-        val byName = candidates.associateBy { it.name }
-        // 停用的、草稿也要比:临时当作在用的放进目录里检索
-        val view = GuideCatalog.withPersonal(catalog, ListedSkills(candidates.map { it.copy(status = SkillStatus.active) }))
-        return view.find(description, kind = PERSONAL_KIND, minScore = RECOMMEND_MIN_SCORE).firstOrNull { hit ->
-            byName[hit.name]?.let { surfaces(FrontMatter.parse(it.markdown).first).intersect(surfaces).isNotEmpty() } == true
-        }?.name
+    /** 已有的个人技能(已收下的在前,待确认的草稿在后,各按名字排),每份一行:名字、显示名、描述。 */
+    private fun existingSkills(existing: PersonalSkills): String {
+        val lines = (existing.list().sortedBy { it.name } + existing.pending().sortedBy { it.name }).map { s ->
+            val meta = FrontMatter.parse(s.markdown).first
+            "- ${s.name}(${meta["display"] as? String ?: s.name}):${meta["description"] as? String ?: ""}"
+        }
+        return "已有的个人技能(含待用户确认的草稿):" + if (lines.isEmpty()) "无" else "\n" + lines.joinToString("\n")
     }
 
 
@@ -259,16 +262,6 @@ class SkillDrafter(private val model: ChatModel) {
         appendLine(ActionDigest.render(ActionDigest.of(input.events, input.tools)))
         append("可用工具:").append(input.toolNames.sorted().joinToString(", "))
     }
-
-    /** 草稿头部写的 App 包名和网站域名。 */
-    private fun surfaces(meta: Map<String, Any>): Set<String> =
-        listOf("apps", "domains").flatMap { k ->
-            when (val v = meta[k]) {
-                is List<*> -> v.filterIsInstance<String>()
-                is String -> listOf(v).filter { it.isNotBlank() }
-                else -> emptyList()
-            }
-        }.toSet()
 
     companion object {
         /** 模型回复外面包着的代码块围栏去掉。 */
@@ -310,18 +303,4 @@ class SkillDrafter(private val model: ChatModel) {
 
         val PROMPT: String by lazy { Prompts.role("skill_draft") }
     }
-}
-
-/** 只读的一组技能,给去重检索用。 */
-private class ListedSkills(private val items: List<PersonalSkill>) : PersonalSkills {
-    override fun list() = items
-    override fun get(name: String) = items.find { it.name == name }
-    override fun put(s: PersonalSkill) = throw UnsupportedOperationException()
-    override fun remove(name: String) = throw UnsupportedOperationException()
-    override fun pending() = emptyList<PersonalSkill>()
-    override fun update(name: String, transform: (PersonalSkill) -> PersonalSkill?) = throw UnsupportedOperationException()
-    override fun drafts() = emptyMap<String, PersonalSkill>()
-    override fun putPending(id: String, s: PersonalSkill) = throw UnsupportedOperationException()
-    override fun approve(id: String, editedMarkdown: String?) = throw UnsupportedOperationException()
-    override fun reject(id: String) = throw UnsupportedOperationException()
 }

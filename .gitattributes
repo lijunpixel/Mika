@@ -1,1 +1,3 @@
+* text=auto eol=lf
+*.bat text eol=crlf
 app/src/main/assets/sandbox/mika text eol=lf

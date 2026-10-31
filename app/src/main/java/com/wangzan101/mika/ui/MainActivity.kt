@@ -46,7 +46,6 @@ import com.wangzan101.mika.MikaApp
 import com.wangzan101.mika.about.Diagnostics
 import com.wangzan101.mika.about.DiagnosticsCollector
 import com.wangzan101.mika.about.MikaLinks
-import com.wangzan101.mika.about.QrImage
 import com.wangzan101.mika.chat.ConversationStore
 import com.wangzan101.mika.record.RunStore
 import com.wangzan101.mika.task.TaskService
@@ -273,7 +272,7 @@ private fun MikaRoot(store: ProviderStore, monitor: SystemStatusMonitor, activit
             phoneSetup.markGuideSeen()
             if (onboarding == OnboardingStep.Phone) goOnboarding(null) else nav.back()
         }
-        Route.Welcome -> WelcomeScreen { goOnboarding(OnboardingStep.Model) }
+        Route.Welcome -> WelcomeScreen(onOpenCollaboration = { nav.push(Route.Collaboration) }) { goOnboarding(OnboardingStep.Model) }
         Route.ModelSetup -> {
             val inOnboarding = onboarding == OnboardingStep.Model
             ModelSetupScreen(
@@ -331,6 +330,7 @@ private fun MikaRoot(store: ProviderStore, monitor: SystemStatusMonitor, activit
                 )
             }
         }
+        Route.Collaboration -> CollaborationScreen(app.collaboration, onBack = back, onOpenModels = { nav.push(Route.Models) })
         Route.Settings -> {
             val registry = remember { WebSites.registry(context) }
             val sites by registry.entries.collectAsState()
@@ -342,7 +342,7 @@ private fun MikaRoot(store: ProviderStore, monitor: SystemStatusMonitor, activit
             )
             val autonomous by app.approvals.autonomous.collectAsState()
             SettingsScreen(store, status, release, onFix, onBack = back, onOpenMemory = { nav.push(Route.Memory) },
-                onOpenModels = { nav.push(Route.Models) }, webSites = webSites,
+                onOpenModels = { nav.push(Route.Models) }, onOpenCollaboration = { nav.push(Route.Collaboration) }, webSites = webSites,
                 autonomous = autonomous, onAutonomous = app.approvalControl::setAutonomous,
                 updateVersion = updateState.update?.version, onOpenAbout = { nav.push(Route.About) })
         }
@@ -360,20 +360,6 @@ private fun MikaRoot(store: ProviderStore, monitor: SystemStatusMonitor, activit
             },
             onCheck = app.updates::checkInBackground,
             onOpenUrl = { openInBrowser(context, it) },
-            onSaveQr = { QrImage.saveToPictures(context) },
-            onAskMikaToJoin = {
-                // 和悬浮胶囊开始任务一样:新对话里交给服务(别的任务在跑时排上),再回到对话页看它跑
-                val gap = AboutCopy.groupTaskGap(check)
-                if (gap != null) {
-                    Toast.makeText(context, gap.message, Toast.LENGTH_SHORT).show()
-                    gap.fix?.let(onFix) ?: nav.push(Route.Settings)
-                } else {
-                    val id = ConversationStore.shared(context).newConversation()
-                    TaskService.start(context, MikaLinks.GROUP_TASK, id, queue = true)
-                    app.chat.openConversation(id)
-                    nav.reset()
-                }
-            },
             onOpenLicense = { nav.push(Route.License) },
             onBack = back,
             diagnostics = {

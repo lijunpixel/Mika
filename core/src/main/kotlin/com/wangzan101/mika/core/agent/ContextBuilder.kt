@@ -15,7 +15,6 @@ import java.time.format.DateTimeFormatter
 
 internal const val KNOWLEDGE_BODY_LIMIT = 4000
 internal const val KNOWLEDGE_TRUNCATED_HINT = "…(truncated; use knowledge_read for the full text)"
-internal const val SKILL_TRUNCATED_HINT = "…(truncated; use skill_read for the full text)"
 
 internal fun clipBody(body: String, limit: Int, hint: String): String = if (body.length <= limit) body else body.take(limit) + "\n" + hint
 
@@ -43,7 +42,6 @@ enum class ContextKind(val wire: String, val layer: ContextLayer, val trust: Tru
     AppKnowledge("app_knowledge", ContextLayer.Knowledge, Trust.Reference, pinned = true),
     SiteKnowledge("site_knowledge", ContextLayer.Knowledge, Trust.Reference, pinned = true),
     SkillsIndex("skills_index", ContextLayer.Skills, Trust.Reference, pinned = true),
-    Skill("skill", ContextLayer.Skills, Trust.Reference, pinned = true),
     Channel("channel", ContextLayer.Runtime, Trust.Runtime, pinned = true),
     /** 用户发来的此刻的屏幕(见 [com.wangzan101.mika.core.userscreen.UserScreenPrompt]):紧跟在那句话后面,压缩时保留。 */
     UserScreen("user_screen", ContextLayer.Runtime, Trust.Screen, pinned = true),
@@ -56,12 +54,11 @@ enum class ContextKind(val wire: String, val layer: ContextLayer, val trust: Tru
     }
 }
 
-/** 字数预算:[total] 管 L5+L2+L4 合计,[layers] 管各层;单份参考资料、个人技能另有上限(正文字数)。 */
+/** 字数预算:[total] 管 L5+L2+L4 合计,[layers] 管各层;单份参考资料另有上限(正文字数)。技能索引整份给,不受预算裁剪(见 [ContextBuilder.start])。 */
 data class ContextBudget(
     val total: Int = 16_000,
-    val layers: Map<ContextLayer, Int> = mapOf(ContextLayer.Task to 8_000, ContextLayer.Knowledge to 10_000, ContextLayer.Skills to 4_000),
+    val layers: Map<ContextLayer, Int> = mapOf(ContextLayer.Task to 8_000, ContextLayer.Knowledge to 10_000),
     val knowledgeItem: Int = KNOWLEDGE_BODY_LIMIT,
-    val skillItem: Int = PERSONAL_SKILL_LIMIT,
     /** 每任务至多注入几份 App/站点参考资料(开局与中途合计)。 */
     val maxKnowledge: Int = 3,
     /** 裁到不足这么多字的正文不值得给,整份不给。 */
@@ -82,20 +79,16 @@ class ContextBuilder(
     private val budget: ContextBudget = ContextBudget(),
     private val zone: ZoneId = ZoneId.systemDefault(),
 ) {
-    /** 个人技能全文:[head] 是说明行(不截),[body] 是正文。 */
-    class SkillText(val source: String, val head: String, val body: String)
-
-    /** 开局的上下文:[messages] 依次放进历史;[knowledge] 是实际给出的参考资料(链接按它放行),[skillKept] 个人技能全文是否给出。 */
-    class Start(val messages: List<Message>, val knowledge: List<KnowledgeEntry>, val skillKept: Boolean)
+    /** 开局的上下文:[messages] 依次放进历史;[knowledge] 是实际给出的参考资料(链接按它放行)。 */
+    class Start(val messages: List<Message>, val knowledge: List<KnowledgeEntry>)
 
     private val used = mutableMapOf<ContextLayer, Int>()
     private var usedTotal = 0
     private val injected = mutableSetOf<Pair<String, Surface>>()
-    private val listed = mutableSetOf<String>()
 
     /**
-     * 开局:之前几轮、记忆、任务原话、可用渠道、参考资料、技能索引与个人技能,按这个顺序。
-     * 超预算时先裁低优先级的层(L4,再 L2),L5 不丢。
+     * 开局:之前几轮、记忆、任务原话、可用渠道、参考资料、知识与技能索引,按这个顺序。
+     * 超预算时先裁 L2,L5 不丢;索引([skillsIndex])是模型知道有哪些技能的唯一入口,也整份给、不截不丢。
      * 原话带着用户此刻的屏幕时,截图([taskImages],主模型看得到图时才有)接在原话里,屏幕的详情([screens]:来源 → 正文)紧跟在原话后面。
      */
     fun start(
@@ -107,12 +100,9 @@ class ContextBuilder(
         knowledgeNote: String = "",
         withLinks: Boolean = false,
         skillsIndex: String? = null,
-        indexedSkills: List<String> = emptyList(),
-        skill: SkillText? = null,
         taskImages: List<Part> = emptyList(),
         screens: List<Pair<String, String>> = emptyList(),
     ): Start {
-        listed += indexedSkills
         val pieces = mutableListOf<Piece>()
         priorTurns?.let { pieces += Piece(ContextKind.PriorTurns, "earlier turns of this conversation", body = it, clip = Int.MAX_VALUE) }
         memory?.let { pieces += Piece(ContextKind.Memory, "memory", body = it) }
@@ -120,7 +110,6 @@ class ContextBuilder(
         val fresh = knowledge.filter { it.body != null && injected.size < budget.maxKnowledge && injected.add(it.name to it.surface) }
         fresh.forEach { pieces += knowledgePiece(it, knowledgeNote, withLinks) }
         skillsIndex?.let { pieces += Piece(ContextKind.SkillsIndex, "knowledge and skills index", body = it) }
-        skill?.let { pieces += Piece(ContextKind.Skill, it.source, head = it.head, body = it.body, clip = budget.skillItem, hint = SKILL_TRUNCATED_HINT) }
 
         val kept = fit(pieces)
         // 任务原话是用户说的,不进外壳;放在之前几轮与记忆之后、其余上下文之前
@@ -129,7 +118,7 @@ class ContextBuilder(
         messages.add(at, Message(Role.User, listOf(Part.Text(task)) + taskImages, Author.User))
         messages.addAll(at + 1, screens.map { (source, body) -> userScreen(source, body) })
         val keptKnowledge = fresh.filter { e -> kept.any { it.entry === e } }
-        return Start(messages, keptKnowledge, kept.any { it.kind == ContextKind.Skill })
+        return Start(messages, keptKnowledge)
     }
 
     /** 中途切到某个 App、打开某个站点时的参考资料;同一份只给一次,超出份数或预算返回 null。 */
@@ -137,19 +126,6 @@ class ContextBuilder(
         e?.body ?: return null
         if (injected.size >= budget.maxKnowledge || !injected.add(e.name to e.surface)) return null
         return fit(listOf(knowledgePiece(e, note, withLinks))).firstOrNull()?.message()
-    }
-
-    /**
-     * 前台到了某个 App/站点([source]),把关联它的技能补进技能索引:[skills] 是 (技能 id, 索引行),已列过的不再列;
-     * 没有新的或超出 L4 预算返回 null。
-     */
-    fun linkedSkills(source: String, header: String, skills: List<Pair<String, String>>): Message? {
-        val fresh = skills.filter { (id, _) -> id !in listed }
-        if (fresh.isEmpty()) return null
-        val kept = fit(listOf(Piece(ContextKind.SkillsIndex, source, body = header + "\n" + fresh.joinToString("\n") { it.second }))).firstOrNull()
-            ?: return null
-        listed += fresh.map { it.first }
-        return kept.message()
     }
 
     /** 用户发来的一屏的详情(屏上的字、编号);不进预算,和那句话一样留着。 */
@@ -195,7 +171,7 @@ class ContextBuilder(
 
     /**
      * 按优先级给额度:层按 L5 > L2 > L4,层内按 [RANK](标准先于记忆先于之前几轮);每份不超过本层上限和剩下的总额。
-     * 放不下的可截正文就截,截不出 [ContextBudget.minKeep] 字或不可截就不给;L5 一律保留(它占掉的额度会挤掉后面的层)。
+     * 放不下的可截正文就截,截不出 [ContextBudget.minKeep] 字或不可截就不给;L5 与技能索引一律保留(L5 占掉的额度会挤掉后面的层)。
      * 不进预算的层原样保留。结果按原顺序。
      */
     private fun fit(pieces: List<Piece>): List<Piece> {
@@ -210,7 +186,7 @@ class ContextBuilder(
             val fitted = when {
                 p.size <= allowance -> p
                 p.clip != null && allowance - p.fixed >= budget.minKeep -> p.clipTo(allowance)
-                layer == ContextLayer.Task -> p
+                layer == ContextLayer.Task || p.kind == ContextKind.SkillsIndex -> p
                 else -> null
             } ?: continue
             used[layer] = (used[layer] ?: 0) + fitted.size
@@ -251,7 +227,7 @@ class ContextBuilder(
         private const val CLOSE = "</context>"
         private val PRIORITY = listOf(ContextLayer.Task, ContextLayer.Knowledge, ContextLayer.Skills)
         private val RANK = listOf(ContextKind.Memory, ContextKind.PriorTurns,
-            ContextKind.AppKnowledge, ContextKind.SiteKnowledge, ContextKind.SkillsIndex, ContextKind.Skill)
+            ContextKind.AppKnowledge, ContextKind.SiteKnowledge, ContextKind.SkillsIndex)
         private val TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
         private const val EXCERPT_CHARS = 60
 

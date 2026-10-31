@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.7.3" type="baseline" client="gradle" dependencies="false" name="AGP (8.7.3)" variant="all" version="8.7.3">
+  <issue id="NewApi" message="Call requires API level 31 (current min is 30): `android.net.ssl.SSLSockets#exportKeyingMaterial`" errorLine1="        SSLSockets.exportKeyingMaterial(socket, label, ByteArray(0), length) ?: throw SSLException(&quot;keying material export failed&quot;)" errorLine2="                   ~~~~~~~~~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/cap/phone/shell/adb/AndroidAdb.kt" line="26" column="20" />
+  </issue>
+  <issue id="NewApi" message="Class requires API level 31 (current min is 30): `android.content.AttributionSource`" errorLine1="                    it.name == &quot;call&quot; &amp;&amp; it.parameterTypes.size == 5 &amp;&amp; it.parameterTypes[0] == AttributionSource::class.java" errorLine2="                                                                                                ~~~~~~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/cap/phone/shell/HelperProcess.kt" line="154" column="97" />
+  </issue>
+  <issue id="NewApi" message="Call requires API level 31 (current min is 30): `android.content.AttributionSource.Builder#build`" errorLine1="                val caller = AttributionSource.Builder(Process.myUid()).setPackageName(ShellContext.SHELL_PACKAGE).build()" errorLine2="                                                                                                                   ~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/cap/phone/shell/HelperProcess.kt" line="156" column="116" />
+  </issue>
+  <issue id="NewApi" message="Call requires API level 31 (current min is 30): `android.content.AttributionSource.Builder#setPackageName`" errorLine1="                val caller = AttributionSource.Builder(Process.myUid()).setPackageName(ShellContext.SHELL_PACKAGE).build()" errorLine2="                                                                        ~~~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/cap/phone/shell/HelperProcess.kt" line="156" column="73" />
+  </issue>
+  <issue id="NewApi" message="Call requires API level 31 (current min is 30): `android.content.AttributionSource.Builder()`" errorLine1="                val caller = AttributionSource.Builder(Process.myUid()).setPackageName(ShellContext.SHELL_PACKAGE).build()" errorLine2="                                               ~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/cap/phone/shell/HelperProcess.kt" line="156" column="48" />
+  </issue>
+  <issue id="NewApi" message="Call requires API level 31 (current min is 30): `android.content.AttributionSource.Builder#build`" errorLine1="        AttributionSource.Builder(SHELL_UID).setPackageName(SHELL_PACKAGE).build()" errorLine2="                                                                           ~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/cap/phone/shell/ShellContext.kt" line="37" column="76" />
+  </issue>
+  <issue id="NewApi" message="Call requires API level 31 (current min is 30): `android.content.AttributionSource.Builder#setPackageName`" errorLine1="        AttributionSource.Builder(SHELL_UID).setPackageName(SHELL_PACKAGE).build()" errorLine2="                                             ~~~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/cap/phone/shell/ShellContext.kt" line="37" column="46" />
+  </issue>
+  <issue id="NewApi" message="Call requires API level 31 (current min is 30): `android.content.AttributionSource.Builder()`" errorLine1="        AttributionSource.Builder(SHELL_UID).setPackageName(SHELL_PACKAGE).build()" errorLine2="                          ~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/cap/phone/shell/ShellContext.kt" line="37" column="27" />
+  </issue>
+  <issue id="UnspecifiedRegisterReceiverFlag" message="`receiver` is missing `RECEIVER_EXPORTED` or `RECEIVER_NOT_EXPORTED` flag for unprotected broadcasts registered for com.wangzan101.mika.test.SHELL_PROBE" errorLine1="            context.registerReceiver(receiver, filter)" errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+    <location file="src/androidTest/java/com/wangzan101/mika/cap/phone/shell/ShellProbe.kt" line="46" column="13" />
+  </issue>
+  <issue id="RestrictedApi" message="WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST can only be accessed from within the same library group (referenced groupId=`androidx.webkit` from groupId=`Mika`)" errorLine1="        if (WebViewFeature.isFeatureSupported(WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST)) {" errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/cap/web/cdp/WebDevtools.kt" line="109" column="62" />
+  </issue>
+  <issue id="ProduceStateDoesNotAssignValue" message="produceState calls should assign `value` inside the producer lambda" errorLine1="    val bmp by produceState(images.cached(image, px), image, px) {" errorLine2="               ~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/ui/AttachSources.kt" line="220" column="16" />
+  </issue>
+  <issue id="ProduceStateDoesNotAssignValue" message="produceState calls should assign `value` inside the producer lambda" errorLine1="    val icon by produceState(key?.let { SiteIcons.cache.get(it) }, key) {" errorLine2="                ~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/ui/BrowserPageParts.kt" line="116" column="17" />
+  </issue>
+  <issue id="ProduceStateDoesNotAssignValue" message="produceState calls should assign `value` inside the producer lambda" errorLine1="        val now by produceState(System.currentTimeMillis(), startedAt) {" errorLine2="                   ~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/capsule/CapsuleController.kt" line="1009" column="20" />
+  </issue>
+  <issue id="ProduceStateDoesNotAssignValue" message="produceState calls should assign `value` inside the producer lambda" errorLine1="    val recent by produceState&lt;List&lt;PendingAttachment&gt;?&gt;(null, access, refresh) {" errorLine2="                  ~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/ui/ChatAttachments.kt" line="124" column="19" />
+  </issue>
+  <issue id="ProduceStateDoesNotAssignValue" message="produceState calls should assign `value` inside the producer lambda" errorLine1="    val now by produceState(System.currentTimeMillis(), startedAt) {" errorLine2="               ~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/ui/ChatScreen.kt" line="623" column="16" />
+  </issue>
+  <issue id="ProduceStateDoesNotAssignValue" message="produceState calls should assign `value` inside the producer lambda" errorLine1="    val source by produceState&lt;EvidenceSource?&gt;(null, runId) { value = runId?.let { loadSource(it) } }" errorLine2="                  ~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/ui/ChatScreen.kt" line="880" column="19" />
+  </issue>
+  <issue id="ProduceStateDoesNotAssignValue" message="produceState calls should assign `value` inside the producer lambda" errorLine1="    val result by produceState&lt;Result&lt;Loaded&gt;?&gt;(null, uri, kind) {" errorLine2="                  ~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/ui/viewer/FileViewerScreen.kt" line="137" column="19" />
+  </issue>
+  <issue id="ProduceStateDoesNotAssignValue" message="produceState calls should assign `value` inside the producer lambda" errorLine1="    val doc by produceState&lt;Result&lt;PdfDoc&gt;?&gt;(null, uri) {" errorLine2="               ~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/ui/viewer/FileViewerScreen.kt" line="287" column="16" />
+  </issue>
+  <issue id="ProduceStateDoesNotAssignValue" message="produceState calls should assign `value` inside the producer lambda" errorLine1="        val bitmap by produceState&lt;Bitmap?&gt;(null, doc, index, widthPx) {" errorLine2="                      ~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/ui/viewer/FileViewerScreen.kt" line="343" column="23" />
+  </issue>
+  <issue id="ProduceStateDoesNotAssignValue" message="produceState calls should assign `value` inside the producer lambda" errorLine1="        val parsed by produceState&lt;List&lt;MdBlock&gt;&gt;(emptyList(), markdown, styles) {" errorLine2="                      ~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/ui/MarkdownText.kt" line="53" column="23" />
+  </issue>
+  <issue id="ProduceStateDoesNotAssignValue" message="produceState calls should assign `value` inside the producer lambda" errorLine1="    val all by produceState&lt;List&lt;RunMetrics&gt;?&gt;(null, store) { value = withContext(Dispatchers.IO) { store.all() } }" errorLine2="               ~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/ui/RunMetricsUi.kt" line="152" column="16" />
+  </issue>
+  <issue id="ProduceStateDoesNotAssignValue" message="produceState calls should assign `value` inside the producer lambda" errorLine1="    val ui by produceState&lt;TimelineUi&gt;(TimelineUi.Loading, vm) { value = withContext(Dispatchers.IO) { vm.load() } }" errorLine2="              ~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/ui/RunTimelineScreen.kt" line="68" column="15" />
+  </issue>
+  <issue id="ProduceStateDoesNotAssignValue" message="produceState calls should assign `value` inside the producer lambda" errorLine1="    val image by produceState&lt;ImageBitmap?&gt;(null, id) {" errorLine2="                 ~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/ui/RunTimelineScreen.kt" line="230" column="18" />
+  </issue>
+  <issue id="ProduceStateDoesNotAssignValue" message="produceState calls should assign `value` inside the producer lambda" errorLine1="    val shown by produceState&lt;ShownScreen?&gt;(null, conversationId, id) {" errorLine2="                 ~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/ui/ScreenMessage.kt" line="121" column="18" />
+  </issue>
+  <issue id="ProduceStateDoesNotAssignValue" message="produceState calls should assign `value` inside the producer lambda" errorLine1="    val ui by produceState&lt;SourceUi?&gt;(null, vm) { value = withContext(Dispatchers.IO) { vm.load() } }" errorLine2="              ~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/ui/SourceScreen.kt" line="57" column="15" />
+  </issue>
+  <issue id="ProduceStateDoesNotAssignValue" message="produceState calls should assign `value` inside the producer lambda" errorLine1="    val image by produceState&lt;ImageBitmap?&gt;(null, vm, id) {" errorLine2="                 ~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/ui/SourceScreen.kt" line="99" column="18" />
+  </issue>
+  <issue id="ProduceStateDoesNotAssignValue" message="produceState calls should assign `value` inside the producer lambda" errorLine1="    val report by produceState&lt;UsageReport?&gt;(null, version, range, live) {" errorLine2="                  ~~~~~~~~~~~~">
+    <location file="src/main/java/com/wangzan101/mika/ui/UsageScreen.kt" line="267" column="19" />
+  </issue>
+  <issue id="ByteOrderMark" message="Found byte-order-mark in the middle of a file" errorLine1="        val text = String(bytes, 0, minOf(bytes.size, TEXT_CAP), Charsets.UTF_8).removePrefix(&quot;﻿&quot;)" errorLine2="                                                                                               ~">
+    <location file="src/main/java/com/wangzan101/mika/ui/viewer/FileViewerScreen.kt" line="176" column="96" />
+  </issue>
+</issues>

@@ -471,7 +471,7 @@ end_not_done #41d1f0f74c58
 knowledge_search #3be9e487a9f0
 knowledge_read #bf94814901fa
 skill_search #a0db380820d4
-skill_read #0c286f87035f
+skill_read #0a1624ffd803
 memory_search #3edbd39eec0a
 memory_save #ace476657c9b
 view_past_screens #a3ac22f0d0d1

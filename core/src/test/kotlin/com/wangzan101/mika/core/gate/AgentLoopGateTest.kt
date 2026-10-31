@@ -125,6 +125,19 @@ private fun StepModel.tapLocated(): (List<Message>) -> ModelReply = {
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AgentLoopGateTest {
+    @Test fun collaborationBlocksNonPaymentSendingEvenWithAutonomousSettings() = runTest {
+        val screen = ChatScreen().also { it.button = "发送" }
+        val model = FakeModel(OBSERVE, TYPE, tapSend(), failure("manual takeover required"))
+        val agent = AgentLoop(model, toolDispatcher(screen), "BASE", maxSteps = 10,
+            confirmations = ConfirmationGate(), approvals = ApprovalSettings { true }, autonomous = true)
+        val result = agent.run(com.wangzan101.mika.core.run.RunSpec(
+            com.wangzan101.mika.core.run.RunId("strict-collaboration"), "Prepare a message for human review", "isolated",
+            provenance = com.wangzan101.mika.core.run.RunProvenance(
+                com.wangzan101.mika.core.run.RunOrigin.Mcp, com.wangzan101.mika.core.run.Attendance.Present, strictOutward = true),
+        ), com.wangzan101.mika.core.run.RunInbox())
+        assertTrue("Sending without a separate human action must be blocked", screen.taps.isEmpty())
+        assertTrue("Strict refusal must return a structured safety result", result is TaskState.Failed && result.kind == FailKind.Guard)
+    }
     private fun loop(m: FakeModel, s: ChatScreen, sink: RunSink = RunSink.NONE, gate: ConfirmationGate? = ConfirmationGate(), maxSteps: Int = 60) =
         AgentLoop(m, toolDispatcher(s), "BASE", maxSteps = maxSteps, sink = sink, confirmations = gate)
 

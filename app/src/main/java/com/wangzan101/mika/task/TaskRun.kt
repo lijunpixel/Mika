@@ -153,6 +153,8 @@ class TaskRun(
     /** 自己的一份;显示中时同步写到服务对外的那份。[show] 时整份抄过去。 */
     /** App 给的模型来源、评测钩子、屏幕画面的开关。 */
     private val env = TaskEnvironment.of(service)
+    private val collaboration = env.collaboration(conversationId)
+    internal val isCollaborationRun: Boolean get() = collaboration != null
     /** 这段对话对外的会话号:这次运行建的模型(主、轻量、看图,及核查、意图判断、停止交代等旁路)都用它。 */
     private val session = ModelSession.of(conversationId)
     /** App 给的手机服务(共用的 shell 连接、「去设置」提示)、记忆、经验路线、异常退出后的恢复。 */
@@ -268,6 +270,17 @@ class TaskRun(
 
     fun resume() { gate?.resume() }
     fun takeOver(waitKey: Int?) { takeover?.let { t -> scope.launch { t.handOver(waitKey) } } }
+    /** Collaboration handoff is one serialized action: move the app to the main display, then stop the agent. */
+    internal fun collaborationTakeOverAndCancel() {
+        val current = takeover ?: return
+        scope.launch {
+            if (current.handOver(null)) {
+                stopPressed = true
+                children?.cancelAll(RunId(key))
+                current.cancel()
+            }
+        }
+    }
     fun handBack(waitKey: Int?) { takeover?.let { t -> scope.launch { t.handBack(waitKey) } } }
     fun finishedMyself(waitKey: Int?) { takeover?.let { t -> scope.launch { t.finishedMyself(waitKey) } } }
     fun skip(waitKey: Int?) { takeover?.let { t -> scope.launch { t.skip(waitKey) } } }
@@ -367,6 +380,7 @@ class TaskRun(
      * 自己对话名下([TaskService.endedRunIds]),界面收到结束状态时按对话取;显示中时也写 [TaskService.endedRunId]。
      */
     fun end(end: TaskState) = synchronized(service.taskState.shownLock) {
+        env.completeCollaboration(conversationId, end)
         service.taskState._endedRunIds.value = service.taskState._endedRunIds.value + (conversationId to _runId.value)
         if (service.taskState.shownRun === this) service.taskState._endedRunId.value = _runId.value
         setState(end)
@@ -417,15 +431,16 @@ class TaskRun(
         )
         sideScope = side
         try {
-            val model = env.modelFactory(service, session) ?: return TaskState.Failed(tr(R.string.fail_no_main_model), FailKind.Environment)
-            val light = env.lightModelFactory(service, session)
-            val vision = env.visionModelFactory(service, session)
+            val model = collaboration?.model ?: env.modelFactory(service, session)
+                ?: return TaskState.Failed(tr(R.string.fail_no_main_model), FailKind.Environment)
+            val light = if (collaboration == null) env.lightModelFactory(service, session) else null
+            val vision = if (collaboration == null) env.visionModelFactory(service, session) else null
 
             val (knowledge, skills) = withContext(Dispatchers.IO) {
                 // 用户对某个 App/站点的补充放在私有目录 personal/apps、personal/sites 下
-                val userNotes = KnowledgeStore.loadNotes(File(service.filesDir, "personal"))
+                val userNotes = if (collaboration == null) KnowledgeStore.loadNotes(File(service.filesDir, "personal")) else emptyMap()
                 // 自学的 App 知识里改名前写下的工具名换成现在的
-                val learnedNotes = legacyNames().let { legacy -> memoryRuntime.appKnowledge().notes().mapValues { it.value.copy(text = legacy.rewrite(it.value.text)) } }
+                val learnedNotes = if (collaboration == null) legacyNames().let { legacy -> memoryRuntime.appKnowledge().notes().mapValues { it.value.copy(text = legacy.rewrite(it.value.text)) } } else emptyMap()
                 KnowledgeStore(KnowledgeStore.loadBundled(), userNotes, learnedNotes) to GuideCatalog.loadBundled()
             }
             val metrics = mainScreenMetrics()
@@ -531,7 +546,7 @@ class TaskRun(
             val apps = try { phoneScreen.listApps() } catch (e: CancellationException) { throw e } catch (e: Exception) { emptyList() }
             val speed = FeatureFlags.get(service).speedFlags()
             // 记忆与个人技能:进程内同一份;总开关关着就不给记忆(不检索、不注入、不提取、没有记忆工具)
-            val switches = memoryRuntime.settings().switches.value.let { sw ->
+            val switches = if (collaboration != null) memoryRuntime.settings().switches.value.copy(useMemory = false, autoRemember = false, learnSkills = false) else memoryRuntime.settings().switches.value.let { sw ->
                 sw.copy(learnSkills = env.evalHooks.learnSkills ?: sw.learnSkills, autoRemember = env.evalHooks.rememberMemory ?: sw.autoRemember)
             }
             val memory = if (switches.useMemory) withContext(Dispatchers.IO) { memoryRuntime.store() } else null
@@ -540,10 +555,10 @@ class TaskRun(
             } else emptyList()
             val utterances = memory?.let { UserUtterances() }
             // 改名前沉淀的个人技能:里面的旧工具名载入时换成现在的
-            val catalog = GuideCatalog.withPersonal(skills, memoryRuntime.skills(), legacyNames()::rewrite)
+            val catalog = if (collaboration == null) GuideCatalog.withPersonal(skills, memoryRuntime.skills(), legacyNames()::rewrite) else skills
             // 内置浏览器:每个任务自己的后台网页显示、标签池和脚本引擎,第一次打开网址时才建(只用手机的任务不建);
             // 系统里没有 WebView 时不提供网页工具
-            val webInstalled = runCatching { WebViewCompat.getCurrentWebViewPackage(service) != null }.getOrDefault(false)
+            val webInstalled = collaboration == null && runCatching { WebViewCompat.getCurrentWebViewPackage(service) != null }.getOrDefault(false)
             val web = if (!webInstalled) null else LazyWebPort {
                 val stack = resources.acquire(Dispatchers.Main, WebStack::close) { WebStack.create(
                         service, key, metrics.widthPixels, metrics.heightPixels, metrics.densityDpi,
@@ -574,12 +589,17 @@ class TaskRun(
             }
             if (conditionCheck && !webInstalled) return TaskState.Failed(tr(R.string.fail_no_web), FailKind.Environment)
             // 这个对话里用户发来的屏幕(跟着对话存在工作区里)
-            val userScreens = (service.application as MikaApp).userScreens.source(conversationId)
+            val userScreens = if (collaboration == null) (service.application as MikaApp).userScreens.source(conversationId) else null
             val runSpec = RunSpec(RunId(key), goal, conversationId,
                 priorTurns,
-                provenance, if (conditionCheck) setOf("web", "sandbox") else null, readOnly = conditionCheck)
-            val runApproval = approvalControl.start(remote = provenance.origin == RunOrigin.Mcp).also { approval = it }
-            val childRunner = if (provenance.origin == RunOrigin.Ui && web != null) ChildAgentRunner(
+                if (collaboration != null) provenance.copy(strictOutward = true) else provenance, when {
+                    collaboration != null -> setOf("phone")
+                    conditionCheck -> setOf("web", "sandbox")
+                    else -> null
+                }, readOnly = conditionCheck,
+                toolAllowlist = collaboration?.toolAllowlist)
+            val runApproval = approvalControl.start(remote = provenance.origin == RunOrigin.Mcp || collaboration != null).also { approval = it }
+            val childRunner = if (collaboration == null && provenance.origin == RunOrigin.Ui && web != null) ChildAgentRunner(
                 create = { childSpec ->
                     val childTools = toolDispatcher(phoneScreen, model.capabilities.vision,
                         web = web, webPacing = { PagePacing.human() }, webPlacePace = { PlacePace.of(catalog.sitePace(it)) },
@@ -596,9 +616,10 @@ class TaskRun(
                 store = (service.application as MikaApp).childRuns,
                 ownerAlive = { job?.isActive == true },
             ).also { children = it } else null
-            val tools = toolDispatcher(phoneScreen, model.capabilities.vision, catalog, recordFrames = true, vision = vision?.let { VisionService(it, BitmapImageOps) },
-                stableRefs = speed.inlineScreen, inlineScreen = speed.inlineScreen,
-                adaptiveVision = speed.adaptiveVision,
+            val tools = toolDispatcher(phoneScreen, model.capabilities.vision && collaboration == null, catalog,
+                recordFrames = collaboration == null, vision = vision?.let { VisionService(it, BitmapImageOps) },
+                stableRefs = speed.inlineScreen && collaboration == null, inlineScreen = speed.inlineScreen && collaboration == null,
+                adaptiveVision = speed.adaptiveVision && collaboration == null,
                 deepLinks = speed.deepLinks, memory = memory, profile = if (memory != null) memoryRuntime.profile() else null,
                 utterances = utterances, conversationId = conversationId,
                 web = web,
@@ -612,7 +633,7 @@ class TaskRun(
                 // 上传只认本对话工作区里的普通文件(与沙箱同一套路径规则);技能目录、工作区外一律越界
                 workspacePath = web?.let { { p: String -> sandbox.uploadCheck(conversationId, p) } },
                 // 工作区 = 对话:同一对话的追问接着用上一轮的文件,不同对话互不可见
-                sandbox = sandbox, workspace = { conversationId },
+                sandbox = if (collaboration == null) sandbox else null, workspace = { conversationId },
                 onSandboxCommand = { sandboxNote(StatusCopy.sandboxCommand(it, sandboxOnline())) },
                 onSandboxProgress = { sandboxNote(StatusCopy.sandboxProgress(it, sandboxOnline())) },
                 onSandboxPreparing = { sandboxNote(StatusCopy.RUNTIME_PREPARING) },
@@ -633,13 +654,17 @@ class TaskRun(
                 }, knowledge = knowledge, sink = sink, installedApps = { apps },
                 // 选渠道用的事实:装了哪些 App、在 Mika 里登录过哪些网站、有没有内置浏览器
                 channelFacts = {
-                    val registry = WebSites.registry(service)
-                    ChannelFacts(
-                        installed = apps.map { it.first }.toSet(),
-                        loggedInSites = withContext(Dispatchers.IO) { registry.list().filter { it.loggedInByUser }.map { it.host }.toSet() },
-                        webAvailable = web != null,
-                        challengedSites = withContext(Dispatchers.IO) { registry.challengedSites() },
-                    )
+                    if (collaboration != null) ChannelFacts(installed = apps.map { it.first }.toSet(), loggedInSites = emptySet(),
+                        webAvailable = false, challengedSites = emptySet())
+                    else {
+                        val registry = WebSites.registry(service)
+                        ChannelFacts(
+                            installed = apps.map { it.first }.toSet(),
+                            loggedInSites = withContext(Dispatchers.IO) { registry.list().filter { it.loggedInByUser }.map { it.host }.toSet() },
+                            webAvailable = web != null,
+                            challengedSites = withContext(Dispatchers.IO) { registry.challengedSites() },
+                        )
+                    }
                 },
                 maxSteps = env.evalHooks.maxSteps ?: AgentLoop.UNLIMITED_STEPS,
                 reviewFinalAnswer = false,
@@ -654,9 +679,9 @@ class TaskRun(
                 flags = speed,
                 // 只在 lightSteps 打开、轻量模型能调工具时生效
                 router = light?.let { ModelRouter(model, it) },
-                intentJudge = if (provenance.origin == RunOrigin.Ui) light ?: model else null,
+                intentJudge = if (collaboration == null && provenance.origin == RunOrigin.Ui) light ?: model else null,
                 // 选路线是辅助判断:用轻量模型,没配用主模型
-                routes = if (speed.replay) RouteMatcher(light ?: model, routeStore, knowledge) else null,
+                routes = if (collaboration == null && speed.replay) RouteMatcher(light ?: model, routeStore, knowledge) else null,
                 skills = catalog,
                 memory = memory,
                 interaction = service.interaction(conversationId),
@@ -668,7 +693,7 @@ class TaskRun(
             )
             loop = agent
             liveFeed = agent.events.subscribe(liveEvents)
-            mcpExternalId?.let { mcpEvents = (service.application as MikaApp).mcpTasks.attach(it, agent.events) }
+            mcpExternalId?.let { mcpEvents = (service.application as MikaApp).remoteTasks.attach(it, agent.events) }
             kit = LearnKit(switches, memory, utterances, tools, agent, catalog, knowledge, model, light, runStore, agent.flags.replay, priorTurns)
             suspend fun <T> io(fallback: T, call: () -> T): T =
                 withContext(Dispatchers.IO) { runCatching(call).getOrDefault(fallback) }
@@ -867,6 +892,7 @@ class TaskRun(
      * 轻量模型优先,没配用主模型;没模型、出错、超时就按记录直接拼。没什么可交代的为 null。
      */
     suspend fun stopSummary(draft: String?): String? {
+        if (collaboration != null) return null
         val k = kit
         val runId = _runId.value
         val recorded = withContext(Dispatchers.IO) { runId?.let { id -> runCatching { k?.runStore?.events(id) }.getOrNull() } }
@@ -888,6 +914,7 @@ class TaskRun(
      * 放弃、失败、取消的不判(结局已经清楚),返回 null;判不成是 [RunOutcome.Unknown]。
      */
     suspend fun settleOutcome(end: TaskState, conversations: ConversationStore): JudgedOutcome? {
+        if (collaboration != null) return null
         val k = kit ?: return null
         if (end !is TaskState.Succeeded) return null
         val judged = OutcomeJudge(k.light ?: k.model, k.model).judge(k.agent.taskText ?: goal, end.answer, k.priorTurns)
@@ -911,6 +938,7 @@ class TaskRun(
      * 在进程级的作用域里跑,服务退出也不中断。
      */
     suspend fun learnAfter(end: TaskState, outcome: RunOutcome?, conversations: ConversationStore) {
+        if (collaboration != null) return
         val k = kit ?: return
         val runId = _runId.value
         val learning = RunLearning(

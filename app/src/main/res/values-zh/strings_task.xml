@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="notif_channel_prepare">后台准备</string>
-    <string name="notif_preparing">Mika 正在准备</string>
-    <string name="notif_result_title">Mika 任务结果</string>
+    <string name="notif_preparing">ibot 正在准备</string>
+    <string name="notif_result_title">ibot 任务结果</string>
     <string name="parallel_second_display_failed">第二块虚拟屏没能建起来,这次运行期间一次只进行一个任务</string>
     <string name="parallel_needs_14">安卓 14 以上才支持同时进行多个任务</string>
     <string name="parallel_low_ram">这台手机内存较小,一次只进行一个任务</string>
     <string name="skill_suspended">这项技能最近不灵,先停用了</string>
     <string name="skill_verified">这项技能用它办成了事，转为正式:%1$s</string>
-    <string name="skill_learned">Mika 学会了一项技能:%1$s</string>
-    <string name="skill_app_draft">Mika 记下了几条关于%1$s的知识，等你确认</string>
-    <string name="skill_app_revised">Mika 修订了%1$s的知识，等你确认</string>
+    <string name="skill_learned">ibot 学会了一项技能:%1$s</string>
+    <string name="skill_app_draft">ibot 记下了几条关于%1$s的知识，等你确认</string>
+    <string name="skill_app_revised">ibot 修订了%1$s的知识，等你确认</string>
     <string name="recovered_result">恢复的任务结果</string>
     <string name="recover_delivery_failed">上次任务已完成，但结果通知送达失败；请在对话里查看</string>
     <string name="recover_maybe_delivered">上次结果可能已送达，请先在对话里查看，避免重复处理</string>
@@ -21,7 +21,7 @@
     <string name="gate_finish_app">「%1$s」要你在屏幕上处理，处理好了点继续</string>
     <string name="gate_finish_unknown">刚打开的 App 要你在屏幕上处理，处理好了点继续</string>
     <string name="gate_moved_away">你打开了这个 App,用完点继续</string>
-    <string name="gate_move_back_failed">没能把 App 挪回 Mika 的屏幕,点继续再试一次</string>
+    <string name="gate_move_back_failed">没能把 App 挪回 ibot 的屏幕,点继续再试一次</string>
     <string name="gate_shell_down">手机操作断开了,等它重新连上(或到设置里处理)后点继续</string>
     <plurals name="queue_ahead">
         <item quantity="other">排队中:前面还有 %1$d 个任务</item>
@@ -29,13 +29,13 @@
     <string name="fail_no_main_model">还没有能用的主模型:请在设置里添加一个支持工具调用的模型。</string>
     <string name="fail_no_web">设备没有可用的网页能力，条件检查无法运行</string>
     <string name="task_waiting_display">排队中:等另一个任务做完再开始</string>
-    <string name="task_no_phone_helper">手机操作还没准备好:请在 Mika 里完成「设置手机操作」(打开无线调试并配对一次)。网页和文件类的事不受影响。</string>
-    <string name="task_no_a11y">Mika 的无障碍服务没有开启:请在系统设置的无障碍里打开 Mika。</string>
+    <string name="task_no_phone_helper">手机操作还没准备好:请在 ibot 里完成「设置手机操作」(打开无线调试并配对一次)。网页和文件类的事不受影响。</string>
+    <string name="task_no_a11y">ibot 的无障碍服务没有开启:请在系统设置的无障碍里打开 ibot。</string>
     <string name="task_error">任务出错:%1$s</string>
     <string name="task_condition_interrupted">条件检查中断</string>
     <string name="task_check_unfinished">定时检查未完成：%1$s</string>
     <string name="task_may_make_sound">该 App 可能会出声</string>
-    <string name="task_notif_title">Mika:%1$s</string>
+    <string name="task_notif_title">ibot:%1$s</string>
     <plurals name="task_active">
         <item quantity="other">%1$d 个任务进行中</item>
     </plurals>

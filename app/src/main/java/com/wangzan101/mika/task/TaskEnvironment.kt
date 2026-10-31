@@ -6,12 +6,26 @@ import com.wangzan101.mika.core.model.ModelRole
 import com.wangzan101.mika.core.model.ModelSession
 import com.wangzan101.mika.settings.ProviderStore
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.CompletableDeferred
+import com.wangzan101.mika.core.agent.TaskState
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 任务从 App 拿的:模型从哪来、评测钩子、显示中的任务此刻有没有屏幕画面。整个进程一份,由 App 给出;
  * 测试换掉里面的模型来源与钩子。
  */
 class TaskEnvironment {
+    data class CollaborationOverride(val model: ChatModel, val toolAllowlist: Set<String>, val result: CompletableDeferred<TaskState> = CompletableDeferred())
+    private val collaborationOverrides = ConcurrentHashMap<String, CollaborationOverride>()
+    fun installCollaboration(conversationId: String, model: ChatModel, toolAllowlist: Set<String>) {
+        check(conversationId.isNotBlank())
+        check(collaborationOverrides.putIfAbsent(conversationId, CollaborationOverride(model, toolAllowlist.toSet())) == null) {
+            "collaboration override already installed"
+        }
+    }
+    fun collaboration(conversationId: String): CollaborationOverride? = collaborationOverrides[conversationId]
+    fun completeCollaboration(conversationId: String, result: TaskState) { collaborationOverrides[conversationId]?.result?.complete(result) }
+    fun removeCollaboration(conversationId: String) { collaborationOverrides.remove(conversationId) }
     /** 显示中的任务的虚拟屏编号;没有任务、或任务还没打开过 App(屏到第一次 launch_app 才建)时为 -1。 */
     val agentDisplayId = MutableStateFlow(-1)
     /** 显示中的任务正在用内置浏览器(画中画要显示网页画面)。 */

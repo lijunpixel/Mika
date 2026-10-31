@@ -61,5 +61,15 @@ interface PersonalSkills {
             if (i != null) lines[i] = "$key: $value" else lines.add(end, "$key: $value")
             return lines.joinToString("\n")
         }
+
+        /** 去掉头部的 [key] 行;没有头部或没有这一行的原样返回。 */
+        fun withoutField(markdown: String, key: String): String {
+            val lines = markdown.replace("\r\n", "\n").split("\n").toMutableList()
+            if (lines.firstOrNull()?.trimEnd() != "---") return markdown
+            val end = (1 until lines.size).firstOrNull { lines[it].trimEnd() == "---" } ?: return markdown
+            val i = (1 until end).firstOrNull { lines[it].startsWith("$key:") } ?: return markdown
+            lines.removeAt(i)
+            return lines.joinToString("\n")
+        }
     }
 }

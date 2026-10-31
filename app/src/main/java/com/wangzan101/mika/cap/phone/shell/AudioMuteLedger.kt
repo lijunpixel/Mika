@@ -1,6 +1,9 @@
 package com.wangzan101.mika.cap.phone.shell
 
 import java.io.File
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 /**
  * 被 Mika 静音的 App → 静音前的 PLAY_AUDIO 模式,同时落在文件里:内置助手进程在静音中被杀、
@@ -42,7 +45,11 @@ class AudioMuteLedger(private val file: File?) {
             } else {
                 val tmp = File(f.parentFile, f.name + ".tmp")
                 tmp.writeText(format(modes))
-                if (!tmp.renameTo(f)) error("rename failed")
+                try {
+                    Files.move(tmp.toPath(), f.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+                } catch (_: AtomicMoveNotSupportedException) {
+                    Files.move(tmp.toPath(), f.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                }
             }
         }
     }

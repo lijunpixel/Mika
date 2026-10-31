@@ -64,7 +64,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** 设置里能进入的子页面;[Home] 是设置首页。 */
-private enum class SettingsPage { Home, Usage, PhoneOps, DuringWork, Capsule, Language, Notifications, WebSites, Sandbox, Routes, Recovery, ComputerAccess, Developer, RunStats }
+private enum class SettingsPage { Home, Usage, PhoneOps, DuringWork, Capsule, Language, Notifications, WebSites, Sandbox, Routes, Recovery, SelfCheck, ComputerAccess, Developer, RunStats }
 
 /**
  * 设置页:总状态卡 + 基本 / 隐私与数据 / 高级 / 关于四组。各子页面在这里切换(返回键先回首页),
@@ -78,6 +78,7 @@ fun SettingsScreen(
     onFix: (Fix) -> Unit,
     onBack: () -> Unit,
     onOpenModels: () -> Unit,
+    onOpenCollaboration: () -> Unit = {},
     onOpenMemory: (() -> Unit)? = null,
     webSites: WebSitesState? = null,
     /** 开发者选项里的「自主模式」:当前值和换它的办法。 */
@@ -142,6 +143,7 @@ fun SettingsScreen(
     val back = {
         page = when (page) {
             SettingsPage.RunStats -> SettingsPage.Developer
+            SettingsPage.SelfCheck -> SettingsPage.Recovery
             SettingsPage.Notifications -> notificationsFrom
             else -> SettingsPage.Home
         }
@@ -154,6 +156,7 @@ fun SettingsScreen(
             status = status, androidRelease = androidRelease,
             mainModel = roles.main?.let { id -> configs.firstOrNull { it.id == id } }?.let(ProviderConnection::displayName),
             onBack = onBack, onProblem = onProblem, onOpenModels = onOpenModels,
+            onOpenCollaboration = onOpenCollaboration,
             usageTokens = usageWeek, onOpenUsage = { page = SettingsPage.Usage },
             onOpenPhoneOps = { page = SettingsPage.PhoneOps },
             onOpenDuringWork = { page = SettingsPage.DuringWork },
@@ -192,7 +195,8 @@ fun SettingsScreen(
             onClear = { scope.launch { routeCount = withContext(Dispatchers.IO) { routeStore.clear(); routeStore.count() } } },
             onBack = toHome,
         )
-        SettingsPage.Recovery -> RecoveryScreen(onBack = toHome)
+        SettingsPage.Recovery -> RecoveryScreen(onBack = toHome, onOpenSelfCheck = { page = SettingsPage.SelfCheck })
+        SettingsPage.SelfCheck -> SelfCheckScreen(status, onBack = back)
         SettingsPage.ComputerAccess -> McpScreen(mcp, onBack = toHome)
         SettingsPage.Developer -> DeveloperOptionsScreen(
             speed, onSpeed = { flags.setSpeed(it); speed = it }, onBack = toHome,
@@ -235,6 +239,7 @@ fun SettingsContent(
     onBack: () -> Unit,
     onProblem: (Problem) -> Unit,
     onOpenModels: () -> Unit,
+    onOpenCollaboration: () -> Unit = {},
     /** 近 7 天用了多少 token;为空(还没统计出来)时不显示这一行。 */
     usageTokens: Long? = null,
     onOpenUsage: () -> Unit = {},
@@ -271,6 +276,7 @@ fun SettingsContent(
 
         GroupLabel(stringResource(R.string.settings_basic))
         GroupCard {
+            ListRow(MikaIcons.Spark, "ibot · Multi-AI", onClick = onOpenCollaboration) { RowChevron() }
             ListRow(MikaIcons.Spark, stringResource(R.string.settings_model), first = true, onClick = onOpenModels) {
                 RowValue(mainModel ?: stringResource(R.string.settings_not_set))
                 RowChevron()

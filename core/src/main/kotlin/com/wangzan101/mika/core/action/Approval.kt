@@ -46,6 +46,7 @@ sealed interface Approval {
 /** 审批判定:纯函数。只有付款要问;问不到人(无人值守、子任务)或不在手机上(渠道、定时、MCP 发起的)时付款不做。 */
 object ApprovalPolicy {
     fun decide(risk: Risk, run: RunProvenance = RunProvenance()): Approval = when {
+        run.strictOutward && risk.level.outward -> Approval.Deny
         !risk.payment -> Approval.Allow
         run.attendance == Attendance.Unattended || run.origin != RunOrigin.Ui -> Approval.Deny
         else -> Approval.Ask

@@ -10,6 +10,7 @@ import com.wangzan101.mika.core.record.RunEvent
 import com.wangzan101.mika.core.record.RunSink
 import com.wangzan101.mika.core.skills.InMemoryPersonalSkills
 import com.wangzan101.mika.core.skills.PersonalSkill
+import com.wangzan101.mika.core.skills.SkillStatus
 import com.wangzan101.mika.core.skills.personalSkill
 import com.wangzan101.mika.core.tool.FakeScreen
 import kotlinx.coroutines.runBlocking
@@ -44,62 +45,65 @@ class AgentLoopSkillTest {
 
     private fun List<Message>.userTexts() = filter { it.role == Role.User }.map { it.plainText() }
     private fun List<Message>.index() = userTexts().filter { it.startsWith(SKILL_INDEX_HEADER) || it.startsWith(KNOWLEDGE_INDEX_HEADER) }
-    private fun List<Message>.fullTexts() = userTexts().filter { it.startsWith(PERSONAL_SKILL_HEADER) }
+    private fun List<Message>.skillLines() = index().flatMap { it.substringAfter(SKILL_INDEX_HEADER + "\n", "").lines() }.filter { it.startsWith("- ") }
+    private val zhihu = personalSkill("zhihu-collections", display = "查看知乎收藏夹列表", description = "打开知乎我的收藏,数收藏夹和条数",
+        extraMeta = "aliases: [知乎收藏夹, 我的收藏, 收藏夹条数]\n")
 
-    @Test fun indexLinesForTop3() {
+    @Test fun knowledgeIndexStillByTaskWords() {
         val r = run("用闲鱼查手机,再发微信给小王,再在知乎搜一下")
         val idx = r.requests.first().index().single()
         // 知识和技能各在自己的标题下(标题里写着用哪个工具读全文)
-        val (lines, headers) = idx.lines().partition { it.startsWith("- ") }
-        assertEquals(3, lines.size)
-        assertTrue(headers.isNotEmpty() && headers.all { it == SKILL_INDEX_HEADER || it == KNOWLEDGE_INDEX_HEADER })
-        assertTrue(idx.lines().first() == KNOWLEDGE_INDEX_HEADER && lines.any { it.startsWith("- app:xianyu(闲鱼):") })
+        assertTrue(idx.lines().first() == KNOWLEDGE_INDEX_HEADER && idx.lines().any { it.startsWith("- app:xianyu(闲鱼):") })
+        assertTrue(SKILL_INDEX_HEADER in idx.lines())
         // 索引行在任务原文之后
         val texts = r.requests.first().userTexts()
         assertTrue(texts.indexOf(idx) > texts.indexOfFirst { it.startsWith("用闲鱼") })
     }
 
-    @Test fun personalSkillFullTextInjectedOnce() {
+    // 目标和技能名一个字面也对不上:技能照样全部列出,由模型按描述判断
+    @Test fun allSkillsListedEvenWithoutSharedWords() {
+        val r = run("知乎上我一共建了几个收藏夹？哪个收藏夹里的内容最多？", zhihu, personalSkill("a-trip", display = "我的出行"))
+        val lines = r.requests.first().skillLines()
+        val builtIn = bundled.items.filter { it.kind == "skill" }.map { it.name }.sorted()
+        assertEquals(builtIn.map { "skill:$it" } + listOf("personal:a-trip", "personal:zhihu-collections"), lines.map { it.removePrefix("- ").substringBefore('(') })
+        assertTrue(lines.contains("- personal:zhihu-collections(查看知乎收藏夹列表):打开知乎我的收藏,数收藏夹和条数"))
+        // 和任务毫不相干的也列出:不按字面挑
+        assertTrue(run("把屏幕亮度调高一点", zhihu).requests.first().skillLines().any { it.startsWith("- personal:zhihu-collections(") })
+    }
+
+    @Test fun suspendedAndPendingNotListedTrialMarked() {
+        val store = InMemoryPersonalSkills(zhihu.copy(status = SkillStatus.trial), personalSkill("old-one", status = SkillStatus.suspended))
+        store.putPending("d1", personalSkill("draft-one"))
+        val catalog = GuideCatalog.withPersonal(bundled, store)
+        val lines = GuideRecommender.index(catalog, "随便")!!.lines()
+        assertTrue(lines.any { it.startsWith("- personal:zhihu-collections(查看知乎收藏夹列表):[unverified") })
+        assertTrue(lines.none { "old-one" in it || "draft-one" in it })
+    }
+
+    // 开头只给索引,个人技能的全文要模型自己用 skill_read 读
+    @Test fun noPersonalFullTextAtStart() {
         val mine = personalSkill("lao-ma-msg", body = "## 入口\n打开微信找老妈", display = "给老妈发消息")
-        val r = run("给老妈发消息说晚点到", mine, script = listOf(reply(call("skill_read", """{"name":"lao-ma-msg"}""")), finish))
-        val first = r.requests.first().fullTexts()
-        assertEquals(listOf("${PERSONAL_SKILL_HEADER}给老妈发消息(personal:lao-ma-msg)\n## 入口\n打开微信找老妈"), first)
-        assertEquals(1, r.requests.last().fullTexts().size)
-        assertTrue(r.requests.first().index().single().contains("- personal:lao-ma-msg(给老妈发消息):"))
+        val r = run("给老妈发消息说晚点到", mine)
+        val first = r.requests.first()
+        assertTrue(first.userTexts().none { "打开微信找老妈" in it })
+        assertTrue(first.userTexts().any { "- personal:lao-ma-msg(给老妈发消息):" in it })
+        assertTrue(r.events.none { it is RunEvent.SkillUsed })
     }
 
-    @Test fun longPersonalSkillTruncated() {
-        val body = "## 步骤\n" + "很".repeat(4000)
-        val r = run("给老妈发消息", personalSkill("lao-ma-msg", body = body, display = "给老妈发消息"))
-        val text = r.requests.first().fullTexts().single()
-        assertTrue(text.endsWith("\n…(truncated; use skill_read for the full text)"))
-        assertEquals(body.take(PERSONAL_SKILL_LIMIT), text.substringAfter("\n").substringBefore("\n…(truncated"))
-    }
-
-    @Test fun skillUsedEventsEmitted() {
-        val mine = personalSkill("lao-ma-msg", display = "给老妈发消息")
-        val other = personalSkill("my-trip", display = "我的出行")
-        val r = run("给老妈发消息", mine, other, script = listOf(
-            reply(call("skill_read", """{"name":"my-trip"}""")),
+    @Test fun skillReadOfPersonalRecordsSkillUsed() {
+        val r = run("知乎上我一共建了几个收藏夹？", zhihu, personalSkill("my-trip", display = "我的出行"), script = listOf(
+            reply(call("skill_read", """{"name":"zhihu-collections"}""")),
             reply(call("knowledge_read", """{"name":"app:wechat"}""")), // 内置的不记
             finish,
         ))
+        // 全文由 skill_read 的结果给出
+        assertTrue(r.requests.last().any { m -> m.parts.any { it is Part.ToolResult && "打开 App" in it.content } })
         val used = r.events.filterIsInstance<RunEvent.SkillUsed>().map { it.name to it.how }
-        assertEquals(listOf("lao-ma-msg" to "injected", "my-trip" to "viewed"), used)
+        assertEquals(listOf("zhihu-collections" to "viewed"), used)
     }
 
-    @Test fun noMatchNoInjection() {
-        val r = run("把屏幕亮度调高一点", personalSkill("lao-ma-msg", display = "给老妈发消息"))
-        assertTrue(r.requests.first().index().isEmpty())
-        assertTrue(r.requests.first().fullTexts().isEmpty())
-        assertTrue(r.events.none { it is RunEvent.SkillUsed })
-        // 关掉推荐时即使命中也不给
+    @Test fun indexOffWhenRecommendDisabled() {
         val off = run("给老妈发消息", personalSkill("lao-ma-msg", display = "给老妈发消息"), recommend = false)
-        assertTrue(off.requests.first().index().isEmpty() && off.requests.first().fullTexts().isEmpty())
-    }
-
-    @Test fun suspendedPersonalNotInjected() {
-        val r = run("给老妈发消息", personalSkill("lao-ma-msg", display = "给老妈发消息", status = com.wangzan101.mika.core.skills.SkillStatus.suspended))
-        assertTrue(r.requests.first().fullTexts().isEmpty())
+        assertTrue(off.requests.first().index().isEmpty())
     }
 }

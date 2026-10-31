@@ -21,6 +21,8 @@ data class RunSpec(
     val readOnly: Boolean = false,
     val parent: RunId? = null,
     val stepBudget: Int? = null,
+    /** Optional hard tool-name boundary for isolated runs; null preserves the normal tool set. */
+    val toolAllowlist: Set<String>? = null,
 ) {
     init { require(goal.isNotBlank() && threadId.isNotBlank()) }
 }

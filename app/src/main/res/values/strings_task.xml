@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="notif_channel_prepare">Background setup</string>
-    <string name="notif_preparing">Mika is getting ready</string>
-    <string name="notif_result_title">Mika task result</string>
+    <string name="notif_preparing">ibot is getting ready</string>
+    <string name="notif_result_title">ibot task result</string>
     <string name="parallel_second_display_failed">Couldn’t create a second virtual screen, so only one task runs at a time for now</string>
     <string name="parallel_needs_14">Running several tasks at once needs Android 14 or later</string>
     <string name="parallel_low_ram">This phone has little memory, so one task runs at a time</string>
     <string name="skill_suspended">This skill hasn’t been working lately, so it’s paused</string>
     <string name="skill_verified">Skill worked, now in regular use: %1$s</string>
-    <string name="skill_learned">Mika learned a skill: %1$s</string>
-    <string name="skill_app_draft">Mika noted a few facts about %1$s for you to review</string>
-    <string name="skill_app_revised">Mika revised its notes on %1$s for you to review</string>
+    <string name="skill_learned">ibot learned a skill: %1$s</string>
+    <string name="skill_app_draft">ibot noted a few facts about %1$s for you to review</string>
+    <string name="skill_app_revised">ibot revised its notes on %1$s for you to review</string>
     <string name="recovered_result">Recovered task result</string>
     <string name="recover_delivery_failed">The last task finished, but its result notification failed. Check the chat.</string>
     <string name="recover_maybe_delivered">The last result may already have been delivered. Check the chat first to avoid doing it twice.</string>
@@ -21,7 +21,7 @@
     <string name="gate_finish_app">“%1$s” needs you on screen. Tap Continue when done</string>
     <string name="gate_finish_unknown">The app just opened needs you on screen. Tap Continue when done</string>
     <string name="gate_moved_away">You opened this app. Tap Continue when you’re done</string>
-    <string name="gate_move_back_failed">Couldn’t move the app back to Mika’s screen. Tap Continue to retry</string>
+    <string name="gate_move_back_failed">Couldn’t move the app back to ibot’s screen. Tap Continue to retry</string>
     <string name="gate_shell_down">Phone control disconnected. Tap Continue once it reconnects (or fix it in Settings)</string>
     <plurals name="queue_ahead">
         <item quantity="one">Queued: %1$d task ahead</item>
@@ -30,13 +30,13 @@
     <string name="fail_no_main_model">No usable main model yet. Add a model with tool calling in Settings.</string>
     <string name="fail_no_web">Web isn’t available on this device, so the condition check can’t run</string>
     <string name="task_waiting_display">Queued: starts after the other task finishes</string>
-    <string name="task_no_phone_helper">Phone control isn’t ready. Finish “Set up phone control” in Mika (turn on Wireless debugging and pair once). Web and file tasks aren’t affected.</string>
-    <string name="task_no_a11y">Mika’s accessibility service is off. Turn on Mika under Accessibility in system settings.</string>
+    <string name="task_no_phone_helper">Phone control isn’t ready. Finish “Set up phone control” in ibot (turn on Wireless debugging and pair once). Web and file tasks aren’t affected.</string>
+    <string name="task_no_a11y">ibot’s accessibility service is off. Turn on ibot under Accessibility in system settings.</string>
     <string name="task_error">Task error: %1$s</string>
     <string name="task_condition_interrupted">Condition check interrupted</string>
     <string name="task_check_unfinished">Scheduled check didn’t finish: %1$s</string>
     <string name="task_may_make_sound">This app may make sound</string>
-    <string name="task_notif_title">Mika: %1$s</string>
+    <string name="task_notif_title">ibot: %1$s</string>
     <plurals name="task_active">
         <item quantity="one">%1$d task running</item>
         <item quantity="other">%1$d tasks running</item>

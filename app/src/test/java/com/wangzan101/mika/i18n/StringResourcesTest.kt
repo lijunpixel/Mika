@@ -47,6 +47,16 @@ class StringResourcesTest {
     }
 
     @Test
+    fun selectedGroupSummaryAndCreditsAreLocalized() {
+        assertEquals("Summarize what my selected WeChat group discussed today", en.strings.getValue("chat_example_group_summary"))
+        assertEquals("帮我总结我指定的微信群聊今天都聊了些什么", zh.strings.getValue("chat_example_group_summary"))
+        assertEquals("幫我總結我指定的微信群聊今天都聊了些什麼", hant.strings.getValue("chat_example_group_summary"))
+        assertEquals("Upstream Mika: Wang Zan · © 2026\nibot maintainer: lijunpixel", en.strings.getValue("about_author"))
+        assertEquals("上游 Mika 作者：王赞 · © 2026\nibot 维护：lijunpixel", zh.strings.getValue("about_author"))
+        assertEquals("上游 Mika 作者：王贊 · © 2026\nibot 維護：lijunpixel", hant.strings.getValue("about_author"))
+    }
+
+    @Test
     fun englishHasNoChineseLeftOver() {
         // 例子里的博主名本来就是中文
         val allowed = fixed + "chat_example_creator"

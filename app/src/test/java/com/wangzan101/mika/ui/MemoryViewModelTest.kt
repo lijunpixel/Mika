@@ -148,7 +148,7 @@ class MemoryViewModelTest {
         assertEquals("这类信息我不会记", vm.ui.value.message)
         vm.dismissMessage()
         vm.approveSkill("d1", fullMd("wechat-msg", "用 `open_chat` 打开")); runCurrent()
-        assertEquals("里面提到了 Mika 没有的工具", vm.ui.value.message)
+        assertEquals("里面提到了 ibot 没有的工具", vm.ui.value.message)
         assertEquals(1, vm.ui.value.skills.drafts.size)
         vm.approveSkill("d1", fullMd("renamed", "1. 用 `phone_tap` 点搜索框")); runCurrent()
         assertTrue(vm.ui.value.skills.drafts.isEmpty())
