@@ -10,8 +10,24 @@ Use JDK 17, Android SDK platform 36, build-tools 35.0.0, and the checked-in Grad
 Set `JAVA_HOME`, `ANDROID_HOME`, and an ignored `local.properties` pointing to the SDK.
 
 ```powershell
-.\gradlew.bat :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+.\gradlew.bat :core:portableTest :app:portableDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
 ```
+
+The explicitly named Windows tasks exclude POSIX sandbox/filesystem contracts that Windows
+cannot implement (67 core and 69 Android JVM cases). The original complete tasks remain intact;
+on Linux run `./gradlew :core:test :app:testDebugUnitTest :app:lintDebug`. The PR workflow runs
+those complete tasks. Portable success must not be reported as complete POSIX coverage.
+Lint baselines 28 errors in unchanged upstream v0.1.23 files; new errors remain fatal.
+Pixel API 37 instrumentation uses stable AndroidX Test runner 1.7.0 / Espresso 3.7.0.
+After installing the debug and androidTest APKs, run the device acceptance script:
+
+```powershell
+.\tools\windows\test-ibot-device.ps1 -Serial 37011FDJH001TZ -Adb C:\Android\platform-tools\adb.exe -Wake
+```
+
+`-Wake` only wakes the display; unlock it manually. The script isolates Compose test cases
+in separate instrumentation processes without clearing data. The inherited Compose test clock
+can re-enter layout during combined API 37 runs; those combined runs are not claimed as passed.
 
 Debug application ID: `com.wangzan101.mika.multiai.dev`; launcher label: **ibot Dev**.
 The release application ID is `com.wangzan101.mika.multiai`. Upstream namespace/class names

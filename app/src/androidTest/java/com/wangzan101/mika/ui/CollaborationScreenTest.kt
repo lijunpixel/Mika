@@ -22,6 +22,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
+// API 37: use tools/windows/test-ibot-device.ps1 for process-isolated Compose clock execution.
 class CollaborationScreenTest {
     @get:Rule(order = Int.MIN_VALUE) val chinese = ChineseUi()
     @get:Rule val compose = createComposeRule()
@@ -45,9 +46,12 @@ class CollaborationScreenTest {
         compose.setContent { MikaTheme { CollaborationScreen(runtime, {}, {}) } }
         compose.onNodeWithTag("ibot_mock_toggle").performScrollTo().performClick()
         compose.onNodeWithTag("ibot_goal").performScrollTo().performTextInput("Verify a deterministic local result")
+        // Release the focused editor before scrolling back to the mode controls.
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
         compose.waitUntil(5_000) { runtime.agents.value.any { it.connectionKind == ConnectionKind.Mock } }
         compose.waitForIdle()
         CollaborationMode.entries.forEach { mode ->
+            println("Verifying collaboration mode: $mode")
             compose.onNodeWithTag("ibot_mode_${mode.name}").performScrollTo().assertIsDisplayed().performClick()
             val priorIds = runtime.runs.value.map { it.id }.toSet()
             compose.onNodeWithTag("ibot_start").performScrollTo().assertIsEnabled().performClick()
