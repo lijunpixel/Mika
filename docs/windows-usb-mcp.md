@@ -48,7 +48,7 @@
 # USB 重插或 adb 重启后，仅恢复端口转发，不轮换令牌
 .\tools\windows\mika-usb-mcp.ps1 -Action RefreshForward
 
-# 关闭手机端 MCP，并撤销属于这台设备的默认端口转发
+# 关闭手机端 MCP，并撤销属于这台设备的端口转发（自定义端口需传相同 -LocalPort）
 .\tools\windows\mika-usb-mcp.ps1 -Action Close
 ```
 
@@ -61,7 +61,8 @@
 - ADB 多设备时必须明确选设备，避免控制错误的手机。
 - 连接脚本不负责解锁手机、不请求 PIN、不绕过需要你亲手处理的支付或登录。
 - `-CheckHealth` 只发送 MCP initialize 请求，不下发真实操作任务。
-- `Close` 需要设备当前在线才能吊销手机端令牌。不能把单纯拔线等同于关闭服务。
+- `Close` 需要设备当前在线才能吊销手机端令牌。使用过 `-LocalPort 18765` 时，关闭时也必须传入 `-LocalPort 18765`；拔线不等于关闭服务。
+- 当前脚本中的 `Status`、`RefreshForward` 读取现存连接信息：手机重启或 MCP 已关闭时应执行 `Connect`。
 - 此脚本仅作 Windows 辅助工具，不会绕过 Android 的系统安全边界。
 
 ## 验收清单
