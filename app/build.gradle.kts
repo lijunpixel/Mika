@@ -102,6 +102,8 @@ dependencies {
     debugImplementation(libs.compose.ui.test.manifest)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
+    // API 37 removed InputManager.getInstance; Espresso 3.7 uses the public service API.
+    androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.junit)
 }
 
