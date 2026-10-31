@@ -26,6 +26,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import com.wangzan101.mika.core.assembly.toolDispatcher
+import com.wangzan101.mika.core.run.RunId
+import com.wangzan101.mika.core.run.RunSpec
 
 class FakeScreen : ScreenPort {
     val calls = mutableListOf<String>()
@@ -56,6 +58,31 @@ class FakeScreen : ScreenPort {
 
 class ToolDispatcherTest {
     private fun call(name: String, args: String = "{}") = Part.ToolCall("c1", name, args)
+
+    @Test fun runSpecToolAllowlistIsAppliedToDeclarationsAndDispatch() = runTest {
+        val allow = setOf("phone_observe", "phone_run", "phone_launch_app", "ask_user", "request_confirmation", "hand_to_user", "end_not_done", "wait")
+        val spec = RunSpec(RunId("isolated"), "do a phone task", "fresh-thread", toolAllowlist = allow)
+        val dispatcher = toolDispatcher(FakeScreen(), runSpec = spec)
+        val names = dispatcher.definitions().map { it.name }.toSet()
+        assertTrue(names.contains("phone_run"))
+        assertTrue(names.contains("phone_observe"))
+        assertFalse(names.contains("phone_share_text"))
+        assertFalse(names.contains("phone_screenshot"))
+        assertFalse(names.contains("phone_add_calendar_event"))
+        assertFalse(names.contains("phone_open_link"))
+        assertFalse(names.contains("schedule_task"))
+        assertFalse(names.contains("memory_search"))
+        assertFalse(names.contains("spawn_agent"))
+        assertEquals("phone_share_text", dispatcher.execute(call("phone_share_text")).content.s("tool"))
+    }
+
+    @Test fun phoneRunCannotDispatchAnUnlistedCompositeMember() = runTest {
+        val screen = FakeScreen()
+        val spec = RunSpec(RunId("isolated-composite"), "phone task", "fresh-thread", toolAllowlist = setOf("phone_run"))
+        val dispatcher = toolDispatcher(screen, runSpec = spec)
+        dispatcher.execute(call("phone_run", """{"commands":[{"op":"launch","packageName":"com.x"}]}"""))
+        assertFalse(screen.calls.any { it.startsWith("open ") })
+    }
     private fun JsonObject.s(k: String) = this[k]!!.jsonPrimitive.content
 
     @Test fun callReasonIsTheModelsNoteUnlessTheToolOwnsTheField() {

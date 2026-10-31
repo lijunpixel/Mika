@@ -29,6 +29,7 @@ class RemoteHost(
     private val onError: (Throwable) -> Unit = {},
     loopbackToken: () -> String? = { null },
     device: DeviceAccess? = null,
+    extension: com.wangzan101.mika.core.mcp.McpToolExtension? = null,
 ) {
     private val access = RemoteAccess(token, clock, loopbackToken = loopbackToken)
     private val clients = LinkedHashMap<String, Long>()
@@ -36,7 +37,7 @@ class RemoteHost(
     val activity: StateFlow<RemoteActivity> = _activity.asStateFlow()
     private val service = RemoteTaskService(tasks)
     private val api = RemoteTaskApi(service, serverVersion, device)
-    private val rpc = McpRpc(McpTaskTools(service, device), serverVersion) { remote, name -> seen(remote, name) }
+    private val rpc = McpRpc(McpTaskTools(service, device, extension), serverVersion) { remote, name -> seen(remote, name) }
     private var server: MiniHttpServer? = null
 
     val boundPort: Int get() = server?.port ?: -1

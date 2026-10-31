@@ -49,7 +49,8 @@ data class DeviceAccessResult(val status: String, val state: DeviceState?, val e
 
 /** 整个进程共用一份。并发调用串行化,成功依据系统状态,不依据按键或命令的返回码。 */
 class DeviceAccess(private val port: DeviceAccessPort, private val store: DeviceAccessStore,
-    private val pollMs: Long = 150, private val waitMs: Long = 5_000) {
+    private val pollMs: Long = 150, private val waitMs: Long = 5_000,
+    private val allowUnlock: Boolean = true) {
     private val mutex = Mutex()
 
     suspend fun state(): DeviceAccessResult {
@@ -67,6 +68,7 @@ class DeviceAccess(private val port: DeviceAccessPort, private val store: Device
     }
 
     suspend fun unlock(): DeviceAccessResult = mutex.withLock {
+        if (!allowUnlock) return@withLock result("manual_unlock_required", read())
         prepare()?.let { return@withLock it }
         var now = read() ?: return@withLock result("device_unavailable")
         if (now.ready) return@withLock result("unlocked", now)

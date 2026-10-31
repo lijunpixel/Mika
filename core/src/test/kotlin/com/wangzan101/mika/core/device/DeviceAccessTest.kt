@@ -11,6 +11,16 @@ import org.junit.Test
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class DeviceAccessTest {
+    @Test fun ibotManualUnlockPolicyNeverWakesDismissesOrReadsCredentials() = runTest {
+        val store = Store()
+        val port = Port()
+        val result = DeviceAccess(port, store, allowUnlock = false).unlock()
+        assertEquals("manual_unlock_required", result.status)
+        assertEquals(0, port.wakes)
+        assertEquals(0, port.dismisses)
+        assertEquals(0, port.entries)
+        assertNull(store.last)
+    }
     private class Store : DeviceAccessStore {
         override var enabled = true
         override val credentialConfigured get() = kind != null

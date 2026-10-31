@@ -94,6 +94,21 @@ tasks.test {
     }
 }
 
+// Windows cannot supply POSIX modes, SecureDirectoryStream or unprivileged symlinks.
+// Keep the complete test task unchanged; this explicitly named task reports only portable coverage.
+val portableTest by tasks.registering(Test::class) {
+    group = "verification"
+    description = "Portable JVM suite; POSIX sandbox filesystem contracts remain in :core:test"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.main.get().output + sourceSets.test.get().runtimeClasspath
+    exclude("**/RemoteCliContractTest*", "**/RootfsExtractorTest*", "**/FakeSandboxContractTest*",
+        "**/ToolDispatcherSandboxTest*", "**/SandboxPathsTest*", "**/WorkspaceFileGateTest*")
+    systemProperty("mika.snapshotDir", file("src/test/resources/loop-snapshots").absolutePath)
+    systemProperty("mika.promptSurfaceDir", file("src/test/resources/prompt-surface").absolutePath)
+    inputs.dir(rootProject.file("docs"))
+    inputs.dir(rootProject.file("app/src"))
+}
+
 val cliContractTest by tasks.registering(Test::class) {
     group = "verification"
     description = "真实 Python CLI 对接 Kotlin 任务 API,核对只走 /api/v1"

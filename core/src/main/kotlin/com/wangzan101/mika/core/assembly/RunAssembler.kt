@@ -28,12 +28,12 @@ internal class RunAssembler(private val providers: List<CapabilityProvider>) {
         val capabilities = providers.filter { (spec.capabilities == null || it.id in spec.capabilities) &&
             (!child || it.id in setOf("web", "sandbox")) }
             .mapNotNull { it.open(spec) }
-        val general = GeneralGroup.tools.filterNot { spec.provenance.attendance == Attendance.Unattended &&
+        val general = GeneralGroup.tools.filter { spec.toolAllowlist == null || it.name in spec.toolAllowlist }.filterNot { spec.provenance.attendance == Attendance.Unattended &&
             it.verb in setOf(Verb.AskUser, Verb.RequestConfirmation, Verb.HandToUser, Verb.ScheduleTask, Verb.ProfileEdit) }
             .filterNot { spec.provenance.origin == RunOrigin.Child && it.verb in setOf(Verb.SpawnAgent, Verb.MemorySave, Verb.ProfileEdit, Verb.ScheduleTask,
                 Verb.AskUser, Verb.RequestConfirmation, Verb.HandToUser) }
             .filter { !readOnly || it.risk == Risk.Read }
-        val capabilityTools = capabilities.flatMap { it.tools() }.filter { !readOnly || it.risk == Risk.Read ||
+        val capabilityTools = capabilities.flatMap { it.tools() }.filter { spec.toolAllowlist == null || it.name in spec.toolAllowlist }.filter { !readOnly || it.risk == Risk.Read ||
             it.capability == "web" && it.verb == Verb.Navigate }
         return ToolDispatcher(capabilities, general + capabilityTools,
             listOf(CoreSections) + capabilities, config, { ctx -> Interfaces.attach(ctx, capabilities.mapNotNull { it.surface }, stableRefs) },
