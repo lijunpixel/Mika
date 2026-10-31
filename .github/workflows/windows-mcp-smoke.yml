@@ -1,6 +1,13 @@
 name: Windows USB MCP smoke
 
 on:
+  push:
+    branches:
+      - feat/windows-usb-mcp-helper-20261031
+    paths:
+      - 'tools/windows/mika-usb-mcp.ps1'
+      - 'tests/windows/**'
+      - '.github/workflows/windows-mcp-smoke.yml'
   pull_request:
     paths:
       - 'tools/windows/mika-usb-mcp.ps1'
@@ -12,15 +19,19 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Windows PowerShell (${{ matrix.shell }})
+  windows-powershell:
+    name: Windows PowerShell 5.1
     runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shell: [powershell, pwsh]
     steps:
       - uses: actions/checkout@v4
-      - name: Test USB MCP helper with mock ADB
-        shell: ${{ matrix.shell }}
+      - name: Run offline fake-ADB tests
+        shell: powershell
+        run: ./tests/windows/test-mika-usb-mcp.ps1
+  powershell-7:
+    name: PowerShell 7
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run offline fake-ADB tests
+        shell: pwsh
         run: ./tests/windows/test-mika-usb-mcp.ps1
