@@ -4,6 +4,9 @@ import org.junit.Rule
 import com.wangzan101.mika.i18n.ChineseTexts
 import com.wangzan101.mika.chat.ConversationSummary
 import com.wangzan101.mika.core.shell.BuiltinShellStatus
+import com.wangzan101.mika.settings.AccessibilityState
+import com.wangzan101.mika.settings.Prerequisites
+import com.wangzan101.mika.settings.SystemStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
