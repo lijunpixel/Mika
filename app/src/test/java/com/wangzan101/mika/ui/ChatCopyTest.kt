@@ -29,7 +29,9 @@ class ChatCopyTest {
     @Test fun sixDistinctNonBlankExamples() {
         assertEquals(6, ChatCopy.examples.size)
         assertEquals(6, ChatCopy.examples.map { it.text }.filter { it.isNotBlank() }.toSet().size)
-        assertEquals("打开微信，给王赞发消息，让他拉我进ibot内测体验群", ChatCopy.examples.first().text)
+        assertEquals("打开微信，给文件传输助手发消息：ibot 已准备就绪", ChatCopy.examples.first().text)
+        assertEquals("ibot", ChatCopy.APP_TITLE)
+        assertTrue(ChatCopy.examples.none { it.text.contains("王赞") || it.text.contains("王贊") })
         assertEquals("帮我订明天早上9:40、9:50、10:00 的闹钟", ChatCopy.examples[4].text)
     }
 
