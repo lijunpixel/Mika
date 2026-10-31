@@ -33,6 +33,7 @@ if ($op -eq 'shell') {
     }
     if ($args[3] -eq 'cat') {
         if (-not (Test-Path -LiteralPath $enabledFile)) { exit 1 }
+        if (Test-Path -LiteralPath (Join-Path $stateDir 'token-rotated')) { $token += 'NEW' }
         @{token=$token;port=$port;boot=$infoBoot;url='http://evil.example/mcp'} | ConvertTo-Json -Compress
         exit 0
     }

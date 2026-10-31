@@ -20,7 +20,7 @@ $failures = New-Object System.Collections.Generic.List[string]
 $passes = 0
 
 function Reset-Fake {
-    foreach ($f in 'enabled', 'forward.txt') {
+    foreach ($f in 'enabled', 'forward.txt', 'token-rotated', 'health-attempts') {
         Remove-Item -LiteralPath (Join-Path $dir $f) -ErrorAction SilentlyContinue
     }
     $env:MIKA_FAKE_DEVICE_COUNT = '1'
@@ -89,6 +89,24 @@ try {
     $env:MIKA_FAKE_INFO_BOOT = '16'
     $c = Invoke-Helper -Options @('-Action','Connect')
     Assert-Case 'stale boot metadata rejected' ($c.Code -ne 0 -and $c.Text -match 'another phone boot' -and $c.Text -notmatch [regex]::Escape($token))
+
+    foreach ($scenario in 'rotate', 'fail', 'port') {
+        Reset-Fake
+        $old = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            $output = @(& $engine -NoProfile -File (Join-Path $PSScriptRoot 'mock-mcp-health.ps1') -Helper $target -Scenario $scenario 2>&1)
+            $code = $LASTEXITCODE
+        } finally { $ErrorActionPreference = $old }
+        $attempts = [int](Get-Content -LiteralPath (Join-Path $dir 'health-attempts'))
+        $text = $output | Out-String
+        $noToken = $text -notmatch [regex]::Escape($token)
+        switch ($scenario) {
+            'rotate' { Assert-Case 'startup health reloads rotated metadata' ($code -eq 0 -and $attempts -eq 2 -and $text -match 'HTTP: 200' -and $noToken) }
+            'fail' { Assert-Case 'startup health stops after three failures' ($code -ne 0 -and $attempts -eq 3 -and $text -match 'initialize check failed' -and $noToken) }
+            'port' { Assert-Case 'startup port change never follows another mapping' ($code -ne 0 -and $attempts -eq 1 -and $text -match 'port changed' -and $noToken) }
+        }
+    }
 
     Write-Host "RESULT: $passes passed, $($failures.Count) failed"
     if ($failures.Count -gt 0) { exit 1 }

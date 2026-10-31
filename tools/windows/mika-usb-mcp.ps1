@@ -180,13 +180,29 @@ Write-Output ("Device: {0}`nMika MCP: {1}`nADB forward: {2}" -f $Serial, $uri, $
 if ($CheckHealth) {
     if (-not $forwardOk) { throw 'Cannot probe MCP: forwarding is missing.' }
     $payload = '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"mika-windows-usb-check","version":"1"}}}'
-    try {
-        $response = Invoke-WebRequest -Uri $uri -Method Post -UseBasicParsing `
-            -ContentType 'application/json' `
-            -Headers @{ Authorization = "Bearer $($info.token)"; Accept = 'application/json, text/event-stream' } `
-            -Body $payload -TimeoutSec 10
-        Write-Output "MCP initialize HTTP: $([int]$response.StatusCode)"
-    } catch {
+    # A restarted service may briefly leave old metadata while rotating its token.
+    # Only initialize is retried; tool calls and user actions are never replayed.
+    $attempts = if ($Action -eq 'Connect') { 3 } else { 1 }
+    $healthy = $false
+    for ($attempt = 1; $attempt -le $attempts; $attempt++) {
+        try {
+            $response = Invoke-WebRequest -Uri $uri -Method Post -UseBasicParsing `
+                -ContentType 'application/json' `
+                -Headers @{ Authorization = "Bearer $($info.token)"; Accept = 'application/json, text/event-stream' } `
+                -Body $payload -TimeoutSec 10
+            Write-Output "MCP initialize HTTP: $([int]$response.StatusCode)"
+            $healthy = $true
+            break
+        } catch {
+            if ($attempt -eq $attempts) { break }
+            Start-Sleep -Milliseconds 500
+            $info = Get-Info
+            if ([int]$info.port -ne $remotePort) {
+                throw 'MCP port changed during startup. Run RefreshForward with the intended port.'
+            }
+        }
+    }
+    if (-not $healthy) {
         throw 'MCP initialize check failed. Inspect the Mika notification and ADB forwarding; token details are hidden.'
     }
 }

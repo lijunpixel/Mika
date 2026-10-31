@@ -22,7 +22,8 @@ verification are separate claims. This development build is not a production rel
 - Host: Windows ThinkPad; isolated Microsoft JDK 17.0.21, Gradle wrapper 8.11.1,
   Android SDK platform 36 and build-tools 35.0.0/34.0.0.
 - SDK command-line tools archive SHA-256 verified against Google's published digest.
-- Windows PowerShell USB MCP offline suite: 13 passed, 0 failed. GitHub Windows smoke
+- Windows PowerShell USB MCP offline suite: 16 passed, 0 failed (including startup token
+  rotation, bounded failure and port-change rejection). GitHub Windows smoke
   workflow also passed on PowerShell 5.1 and 7 for source `a1e2cc9`.
 - Targeted safety, collaboration, summary replacement and branding regression: passed.
 - The original full Windows JVM tasks exposed upstream POSIX filesystem assumptions.
@@ -53,7 +54,7 @@ Windows smoke also passed: https://github.com/lijunpixel/Mika/actions/runs/41213
 - Installed with `adb install -r -t` on the independent development package. Final activity
   launch returned `Status: ok`; startup screenshot: `D:\bot\evidence\ibot-final-startup.png`.
 - Final APK USB MCP initialization returned HTTP 200 again after installation.
-- Subsequent documentation/instrumentation-only commits do not change this APK's runtime code.
+- Subsequent documentation, instrumentation and desktop-helper commits do not change this APK's runtime code.
 - Pixel device cases passed in isolated instrumentation processes: no-key start guard,
   all four Mock collaboration modes with independent output and result assertions, active
   task cancellation, traceable Mock MCP completion, and rejection of remote real/phone grants.
@@ -81,6 +82,11 @@ Windows smoke also passed: https://github.com/lijunpixel/Mika/actions/runs/41213
 - Remote unlock returned `manual_unlock_required`; no lock-screen credential read or entered.
 - Development forward removal/restoration tested; old token returned HTTP 401 after close,
   refreshed connection returned 200 and rotated token. Original `8765 -> 8765` preserved.
+- Captured a post-instrumentation startup race: the first immediate Connect probe failed,
+  while Status with refreshed metadata returned 200. The desktop helper now retries only
+  initialization up to three times with fresh in-memory metadata and rejects a changed port.
+  Offline recovery/failure cases passed; stopping/restarting only ibot Dev then Connect on
+  the real Pixel returned 200. Tool invocations and user actions are never replayed.
 - Local sanitized evidence: `D:\bot\evidence\mcp-regression.json`; initial screenshots:
   `D:\bot\evidence\ibot-startup.png`, `D:\bot\evidence\ibot-collaboration.png`.
   No bearer token is included in this record or committed evidence.
